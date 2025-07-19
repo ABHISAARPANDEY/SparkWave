@@ -351,8 +351,13 @@ export default function CreateCampaign() {
                       Connect your social media accounts to get started
                     </h3>
                     <p className="text-slate-600 text-lg">
-                      Simply click on any platform below and authorize SparkWave. We'll handle all the technical details - just log into your accounts when prompted.
+                      Click any platform below and you'll be redirected to authorize SparkWave. No API keys or technical setup required - just login with your social media credentials.
                     </p>
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
+                      <p className="text-blue-800 text-sm">
+                        <strong>How it works:</strong> Click → Login to your social account → Grant SparkWave posting permission → Start creating campaigns that post automatically
+                      </p>
+                    </div>
                   </div>
 
                   {socialAccountsLoading ? (
@@ -451,9 +456,9 @@ export default function CreateCampaign() {
                               <div>
                                 <h4 className="font-semibold text-slate-900 flex items-center">
                                   Twitter/X 
-                                  <span className="ml-2 bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">READY</span>
+                                  <span className="ml-2 bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">LIVE</span>
                                 </h4>
-                                <p className="text-sm text-slate-500">Click to authorize SparkWave</p>
+                                <p className="text-sm text-slate-500">Real posting to Twitter enabled</p>
                               </div>
                             </div>
                             {availablePlatforms.some(p => p.platform === 'twitter') ? (
