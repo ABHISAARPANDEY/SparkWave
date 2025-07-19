@@ -234,35 +234,13 @@ export default function CreateCampaign() {
     window.location.href = `/auth/facebook/connect`;
   };
 
-  const connectTwitter = async () => {
-    try {
-      // Check if OAuth is configured before redirecting
-      const response = await fetch('/auth/twitter/connect');
-      if (!response.ok) {
-        const errorData = await response.json();
-        if (errorData.setupRequired) {
-          toast({
-            title: "Twitter API Setup Required",
-            description: "Please add your Twitter API credentials to the environment variables first.",
-            variant: "destructive",
-          });
-          return;
-        }
-      }
-      
-      toast({
-        title: "Redirecting to Twitter/X",
-        description: "You'll be redirected to Twitter to authorize SparkWave.",
-      });
-      // Redirect to server-side OAuth initiation which will redirect to Twitter
-      window.location.href = `/auth/twitter/connect`;
-    } catch (error) {
-      toast({
-        title: "Connection Error",
-        description: "Failed to connect to Twitter. Please check your setup.",
-        variant: "destructive",
-      });
-    }
+  const connectTwitter = () => {
+    toast({
+      title: "Redirecting to Twitter/X",
+      description: "You'll be redirected to Twitter to authorize SparkWave for posting.",
+    });
+    // Redirect to server-side OAuth initiation which will redirect to Twitter
+    window.location.href = `/auth/twitter/connect`;
   };
 
   const prevStep = () => setStep(step - 1);
@@ -373,7 +351,7 @@ export default function CreateCampaign() {
                       Connect your social media accounts to get started
                     </h3>
                     <p className="text-slate-600 text-lg">
-                      We'll use OAuth to securely connect your accounts so we can post content automatically.
+                      Simply click on any platform below and authorize SparkWave. We'll handle all the technical details - just log into your accounts when prompted.
                     </p>
                   </div>
 
@@ -473,9 +451,9 @@ export default function CreateCampaign() {
                               <div>
                                 <h4 className="font-semibold text-slate-900 flex items-center">
                                   Twitter/X 
-                                  <span className="ml-2 bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full">SETUP</span>
+                                  <span className="ml-2 bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">READY</span>
                                 </h4>
-                                <p className="text-sm text-slate-500">Add API credentials to enable</p>
+                                <p className="text-sm text-slate-500">Click to authorize SparkWave</p>
                               </div>
                             </div>
                             {availablePlatforms.some(p => p.platform === 'twitter') ? (
