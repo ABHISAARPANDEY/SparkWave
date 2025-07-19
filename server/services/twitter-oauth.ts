@@ -27,6 +27,8 @@ export async function exchangeTwitterCodeForToken(code: string, redirectUri: str
     throw new Error('Twitter OAuth credentials not configured');
   }
 
+  console.log(`Exchanging Twitter code for token with redirect_uri: ${redirectUri}`);
+
   // Exchange authorization code for access token
   const tokenResponse = await fetch('https://api.twitter.com/2/oauth2/token', {
     method: 'POST',
@@ -38,7 +40,6 @@ export async function exchangeTwitterCodeForToken(code: string, redirectUri: str
       grant_type: 'authorization_code',
       code,
       redirect_uri: redirectUri,
-      code_verifier: 'challenge', // Should match the code_challenge from auth URL
     }),
   });
 

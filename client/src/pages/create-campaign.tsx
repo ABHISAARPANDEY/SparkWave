@@ -358,6 +358,11 @@ export default function CreateCampaign() {
                         <strong>How it works:</strong> Click → Login to your social account → Grant SparkWave posting permission → Start creating campaigns that post automatically
                       </p>
                     </div>
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mt-2">
+                      <p className="text-amber-800 text-xs">
+                        <strong>Note:</strong> If Twitter shows "refused to connect", the callback URL needs to be configured in the Twitter app settings to: <code className="bg-amber-100 px-1 rounded">https://sparkwave.replit.app/auth/twitter/callback</code>
+                      </p>
+                    </div>
                   </div>
 
                   {socialAccountsLoading ? (

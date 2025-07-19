@@ -398,26 +398,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           authUrl = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${facebookClientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=pages_manage_posts,pages_read_engagement,publish_to_groups&response_type=code&state=${state}`;
           break;
         case 'twitter':
-          // SparkWave registered app - users authorize SparkWave to post on their behalf
+          // Twitter OAuth with proper callback URL
           const twitterClientId = process.env.TWITTER_CLIENT_ID;
           if (!twitterClientId) {
-            // For now, simulate the OAuth flow to show the user experience
-            console.log(`Simulating Twitter OAuth for user ${userId}`);
-            setTimeout(async () => {
-              try {
-                const mockConnection = await createMockSocialConnection('twitter', userId);
-                // Would redirect back after real OAuth
-              } catch (error) {
-                console.error('Mock connection error:', error);
-              }
-            }, 1000);
-            
-            // Simulate Twitter's OAuth redirect to show the flow
-            authUrl = `data:text/html,<html><body><h2>Twitter OAuth Simulation</h2><p>In production, this would redirect to:</p><code>https://twitter.com/i/oauth2/authorize?client_id=SPARKWAVE_APP_ID&redirect_uri=${encodeURIComponent(redirectUri)}&scope=tweet.read%20tweet.write%20users.read&response_type=code&state=${state}</code><br><br><a href="${baseUrl}/auth/twitter/callback?code=demo_auth_code_${Date.now()}&state=${state}">Simulate successful Twitter authorization</a></body></html>`;
-          } else {
-            // Real Twitter OAuth when credentials are properly set up
-            authUrl = `https://twitter.com/i/oauth2/authorize?response_type=code&client_id=${twitterClientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=tweet.read tweet.write users.read offline.access&state=${state}&code_challenge=challenge&code_challenge_method=plain`;
+            return res.status(400).json({ message: 'Twitter OAuth not configured' });
           }
+          
+          // Ensure callback URL matches what's registered in Twitter app
+          const exactRedirectUri = `${baseUrl}/auth/twitter/callback`;
+          console.log(`Twitter OAuth redirect URI: ${exactRedirectUri}`);
+          
+          // Use simplified OAuth without PKCE for now (Twitter app must support this)
+          authUrl = `https://twitter.com/i/oauth2/authorize?response_type=code&client_id=${twitterClientId}&redirect_uri=${encodeURIComponent(exactRedirectUri)}&scope=tweet.read%20tweet.write%20users.read&state=${state}`;
           break;
         default:
           return res.status(400).json({ message: 'Unsupported platform' });
