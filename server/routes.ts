@@ -262,8 +262,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         console.log(`Processing OAuth callback for ${platform} with code: ${(code as string).substring(0, 10)}...`);
         
-        // For development/testing, create a mock successful connection
-        // In production, this would use the real exchangeCodeForToken function
+        // Use real OAuth for Twitter if credentials are available
+        if (platform === 'twitter' && process.env.TWITTER_CLIENT_ID && process.env.TWITTER_CLIENT_SECRET) {
+          const { exchangeTwitterCodeForToken } = await import('./services/twitter-oauth.js');
+          
+          try {
+            const tokenData = await exchangeTwitterCodeForToken(code as string, redirectUri);
+            
+            // Save the real Twitter connection
+            await storage.createSocialAccount({
+              userId,
+              platform,
+              platformUserId: tokenData.userId,
+              username: tokenData.username,
+              accessToken: tokenData.accessToken,
+              refreshToken: tokenData.refreshToken || null,
+              expiresAt: tokenData.expiresAt,
+              isActive: true,
+            });
+
+            console.log(`Successfully connected Twitter account ${tokenData.username} for user ${userId}`);
+            res.redirect(`${baseUrl}/create-campaign?connected=${platform}&username=${encodeURIComponent(tokenData.username)}`);
+            return;
+          } catch (twitterError) {
+            console.error('Twitter OAuth error:', twitterError);
+            res.redirect(`${baseUrl}/create-campaign?error=oauth_error&message=${encodeURIComponent('Failed to connect Twitter account')}`);
+            return;
+          }
+        }
+        
+        // For other platforms without real credentials, create mock connections
         const mockConnection = await createMockSocialConnection(platform, userId);
         
         if (mockConnection.success) {
@@ -354,8 +382,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           authUrl = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${facebookClientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=pages_manage_posts,pages_read_engagement,publish_to_groups&response_type=code&state=${state}`;
           break;
         case 'twitter':
-          // SparkWave's registered Twitter app credentials
-          const twitterClientId = process.env.TWITTER_CLIENT_ID || 'abcdefghijklmnop'; // SparkWave's Twitter app
+          // Real Twitter OAuth with user's credentials
+          const twitterClientId = process.env.TWITTER_CLIENT_ID;
+          if (!twitterClientId) {
+            return res.status(400).json({ message: 'Twitter OAuth not configured' });
+          }
           authUrl = `https://twitter.com/i/oauth2/authorize?response_type=code&client_id=${twitterClientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=tweet.read tweet.write users.read offline.access&state=${state}&code_challenge=challenge&code_challenge_method=plain`;
           break;
         default:

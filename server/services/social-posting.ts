@@ -175,9 +175,25 @@ async function postToFacebook(content: string, account: any) {
 
 async function postToTwitter(content: string, account: any) {
   try {
-    // For live testing mode, simulate successful post with realistic logging
+    // Use real Twitter API if this is a real connected account
+    if (account.accessToken && !account.accessToken.startsWith('demo_token_') && !account.accessToken.startsWith('live_token_')) {
+      console.log(`[REAL POSTING] Sending to Twitter API for ${account.username}: "${content.substring(0, 100)}${content.length > 100 ? '...' : ''}"`);
+      
+      const { postToTwitterAPI } = await import('./twitter-oauth.js');
+      const result = await postToTwitterAPI(content, account.accessToken);
+      
+      if (result.success) {
+        console.log(`[SUCCESS] Tweet posted to ${account.username}, ID: ${result.tweetId}`);
+        return { success: true, platformPostId: result.tweetId };
+      } else {
+        console.error(`[FAILED] Twitter posting failed: ${result.error}`);
+        return { success: false, error: result.error };
+      }
+    }
+    
+    // For testing/demo accounts, simulate successful post with realistic logging
     if (account.accessToken.startsWith('live_token_') || account.accessToken.startsWith('demo_token_')) {
-      console.log(`[LIVE POSTING] Twitter/X @${account.username}: "${content.substring(0, 100)}${content.length > 100 ? '...' : ''}"`);
+      console.log(`[LIVE POSTING] Twitter/X ${account.username}: "${content.substring(0, 100)}${content.length > 100 ? '...' : ''}"`);
       console.log(`[TWITTER] Tweet would be published to Twitter/X timeline`);
       return { success: true, platformPostId: `tw_live_${Date.now()}` };
     }

@@ -374,8 +374,11 @@ export default function CreateCampaign() {
                                 <SiInstagram className="w-6 h-6 text-white" />
                               </div>
                               <div>
-                                <h4 className="font-semibold text-slate-900">Instagram</h4>
-                                <p className="text-sm text-slate-500">Connect your Instagram account</p>
+                                <h4 className="font-semibold text-slate-900 flex items-center">
+                                  Instagram
+                                  <span className="ml-2 bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full">DEMO</span>
+                                </h4>
+                                <p className="text-sm text-slate-500">Demo posting mode</p>
                               </div>
                             </div>
                             {availablePlatforms.some(p => p.platform === 'instagram') ? (
@@ -396,8 +399,11 @@ export default function CreateCampaign() {
                                 <SiLinkedin className="w-6 h-6 text-white" />
                               </div>
                               <div>
-                                <h4 className="font-semibold text-slate-900">LinkedIn</h4>
-                                <p className="text-sm text-slate-500">Connect your LinkedIn account</p>
+                                <h4 className="font-semibold text-slate-900 flex items-center">
+                                  LinkedIn
+                                  <span className="ml-2 bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full">DEMO</span>
+                                </h4>
+                                <p className="text-sm text-slate-500">Demo posting mode</p>
                               </div>
                             </div>
                             {availablePlatforms.some(p => p.platform === 'linkedin') ? (
@@ -418,8 +424,11 @@ export default function CreateCampaign() {
                                 <SiFacebook className="w-6 h-6 text-white" />
                               </div>
                               <div>
-                                <h4 className="font-semibold text-slate-900">Facebook</h4>
-                                <p className="text-sm text-slate-500">Connect your Facebook page</p>
+                                <h4 className="font-semibold text-slate-900 flex items-center">
+                                  Facebook
+                                  <span className="ml-2 bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full">DEMO</span>
+                                </h4>
+                                <p className="text-sm text-slate-500">Demo posting mode</p>
                               </div>
                             </div>
                             {availablePlatforms.some(p => p.platform === 'facebook') ? (
@@ -440,8 +449,11 @@ export default function CreateCampaign() {
                                 <SiX className="w-6 h-6 text-white" />
                               </div>
                               <div>
-                                <h4 className="font-semibold text-slate-900">Twitter/X</h4>
-                                <p className="text-sm text-slate-500">Connect your Twitter account</p>
+                                <h4 className="font-semibold text-slate-900 flex items-center">
+                                  Twitter/X 
+                                  <span className="ml-2 bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">LIVE</span>
+                                </h4>
+                                <p className="text-sm text-slate-500">Real-time posting enabled</p>
                               </div>
                             </div>
                             {availablePlatforms.some(p => p.platform === 'twitter') ? (
