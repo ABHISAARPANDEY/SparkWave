@@ -1,0 +1,196 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: hsl(240, 10%, 98%);
+  --foreground: hsl(240, 10%, 9%);
+  --muted: hsl(240, 4.8%, 95.9%);
+  --muted-foreground: hsl(240, 5%, 45%);
+  --popover: hsl(0, 0%, 100%);
+  --popover-foreground: hsl(240, 10%, 9%);
+  --card: hsl(0, 0%, 100%);
+  --card-foreground: hsl(240, 10%, 9%);
+  --border: hsl(240, 5.9%, 90%);
+  --input: hsl(240, 5.9%, 90%);
+  --primary: hsl(221, 91%, 60%);
+  --primary-foreground: hsl(210, 100%, 98%);
+  --secondary: hsl(240, 4.8%, 95.9%);
+  --secondary-foreground: hsl(240, 9%, 10%);
+  --accent: hsl(240, 4.8%, 95.9%);
+  --accent-foreground: hsl(240, 9%, 10%);
+  --destructive: hsl(0, 84.2%, 60.2%);
+  --destructive-foreground: hsl(60, 9.1%, 97.8%);
+  --ring: hsl(240, 10%, 4%);
+  --radius: 0.75rem;
+  
+  /* SparkWave custom colors */
+  --electric-blue: hsl(221, 91%, 60%);
+  --spark-violet: hsl(271, 91%, 65%);
+  --spark-emerald: hsl(160, 84%, 39%);
+  --spark-orange: hsl(43, 96%, 56%);
+  --spark-pink: hsl(322, 84%, 60%);
+}
+
+.dark {
+  --background: hsl(240, 10%, 3.9%);
+  --foreground: hsl(0, 0%, 98%);
+  --muted: hsl(240, 3.7%, 15.9%);
+  --muted-foreground: hsl(240, 5%, 64.9%);
+  --popover: hsl(240, 10%, 3.9%);
+  --popover-foreground: hsl(0, 0%, 98%);
+  --card: hsl(240, 10%, 3.9%);
+  --card-foreground: hsl(0, 0%, 98%);
+  --border: hsl(240, 3.7%, 15.9%);
+  --input: hsl(240, 3.7%, 15.9%);
+  --primary: hsl(221, 91%, 60%);
+  --primary-foreground: hsl(210, 100%, 98%);
+  --secondary: hsl(240, 3.7%, 15.9%);
+  --secondary-foreground: hsl(0, 0%, 98%);
+  --accent: hsl(240, 3.7%, 15.9%);
+  --accent-foreground: hsl(0, 0%, 98%);
+  --destructive: hsl(0, 62.8%, 30.6%);
+  --destructive-foreground: hsl(0, 0%, 98%);
+  --ring: hsl(240, 4.9%, 83.9%);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  .text-electric-blue {
+    color: hsl(221, 91%, 60%);
+  }
+  
+  .text-spark-violet {
+    color: hsl(271, 91%, 65%);
+  }
+  
+  .text-spark-emerald {
+    color: hsl(160, 84%, 39%);
+  }
+  
+  .text-spark-orange {
+    color: hsl(43, 96%, 56%);
+  }
+  
+  .text-spark-pink {
+    color: hsl(322, 84%, 60%);
+  }
+  
+  .bg-electric-blue {
+    background-color: hsl(221, 91%, 60%);
+  }
+  
+  .bg-spark-violet {
+    background-color: hsl(271, 91%, 65%);
+  }
+  
+  .bg-spark-emerald {
+    background-color: hsl(160, 84%, 39%);
+  }
+  
+  .bg-spark-orange {
+    background-color: hsl(43, 96%, 56%);
+  }
+  
+  .bg-spark-pink {
+    background-color: hsl(322, 84%, 60%);
+  }
+  
+  .gradient-electric-violet {
+    background: linear-gradient(135deg, hsl(221, 91%, 60%) 0%, hsl(271, 91%, 65%) 100%);
+  }
+  
+  .gradient-emerald-teal {
+    background: linear-gradient(135deg, hsl(160, 84%, 39%) 0%, hsl(180, 84%, 39%) 100%);
+  }
+  
+  .gradient-orange-yellow {
+    background: linear-gradient(135deg, hsl(43, 96%, 56%) 0%, hsl(48, 96%, 56%) 100%);
+  }
+  
+  .gradient-pink-rose {
+    background: linear-gradient(135deg, hsl(322, 84%, 60%) 0%, hsl(350, 84%, 60%) 100%);
+  }
+  
+  .animate-pulse-slow {
+    animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  
+  .animate-bounce-gentle {
+    animation: bounce 2s infinite;
+  }
+  
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+  }
+  
+  .animate-slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+}
+
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Custom component styles */
+.sparkwave-hero {
+  background: linear-gradient(135deg, 
+    hsl(221, 91%, 60%) 0%, 
+    hsl(271, 91%, 65%) 25%, 
+    hsl(322, 84%, 60%) 100%
+  );
+}
+
+.sparkwave-card {
+  @apply bg-white rounded-3xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 hover:-translate-y-1;
+}
+
+.sparkwave-button-primary {
+  background: linear-gradient(135deg, hsl(221, 91%, 60%) 0%, hsl(271, 91%, 65%) 100%);
+  @apply text-white font-bold py-3 px-6 rounded-xl hover:shadow-lg hover:scale-105 transition-all duration-200;
+}
+
+.sparkwave-button-secondary {
+  @apply bg-white border-2 border-blue-500 text-blue-500 font-bold py-3 px-6 rounded-xl hover:bg-blue-500 hover:text-white transition-all duration-200;
+}
+
+.sparkwave-input {
+  @apply w-full p-4 border-2 border-gray-200 rounded-2xl focus:border-blue-500 focus:outline-none text-lg;
+}
+
+.sparkwave-progress {
+  @apply w-full bg-gray-200 rounded-full h-3 overflow-hidden;
+}
+
+.sparkwave-progress-bar {
+  background: linear-gradient(135deg, hsl(221, 91%, 60%) 0%, hsl(271, 91%, 65%) 100%);
+  @apply h-full rounded-full transition-all duration-500;
+}

@@ -1,0 +1,448 @@
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import Navigation from "@/components/navigation";
+import PlatformSelector from "@/components/platform-selector";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+import { insertCampaignSchema } from "@shared/schema";
+import { useLocation } from "wouter";
+import { Link } from "wouter";
+import { 
+  ArrowLeft, 
+  ArrowRight, 
+  Sparkles, 
+  Calendar, 
+  Clock, 
+  Target,
+  Lightbulb,
+  Heart,
+  Smile,
+  X
+} from "lucide-react";
+import { z } from "zod";
+
+const campaignFormSchema = insertCampaignSchema.omit({ userId: true }).extend({
+  platforms: z.array(z.string()).min(1, "Select at least one platform"),
+});
+
+type CampaignFormData = z.infer<typeof campaignFormSchema>;
+
+const CONTENT_STYLES = [
+  {
+    id: "professional",
+    name: "Professional",
+    description: "Expert insights and industry knowledge",
+    icon: Lightbulb,
+  },
+  {
+    id: "inspirational", 
+    name: "Inspirational",
+    description: "Motivational and uplifting content",
+    icon: Heart,
+  },
+  {
+    id: "casual",
+    name: "Casual", 
+    description: "Friendly and conversational tone",
+    icon: Smile,
+  },
+];
+
+export default function CreateCampaign() {
+  const [step, setStep] = useState(1);
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
+  const { toast } = useToast();
+  const [, setLocation] = useLocation();
+
+  const form = useForm<CampaignFormData>({
+    resolver: zodResolver(campaignFormSchema),
+    defaultValues: {
+      title: "",
+      prompt: "",
+      description: "",
+      platforms: [],
+      duration: 30,
+      postingTime: "15:00",
+      contentStyle: "professional",
+      status: "active",
+      isActive: true,
+    },
+  });
+
+  const createCampaignMutation = useMutation({
+    mutationFn: async (data: CampaignFormData) => {
+      const response = await apiRequest("POST", "/api/campaigns", data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/campaigns"] });
+      toast({
+        title: "Campaign created!",
+        description: "Your AI is now generating amazing content for your campaign.",
+      });
+      setLocation("/campaigns");
+    },
+    onError: () => {
+      toast({
+        title: "Failed to create campaign",
+        description: "Please try again or contact support if the issue persists.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const onSubmit = (data: CampaignFormData) => {
+    createCampaignMutation.mutate({
+      ...data,
+      platforms: selectedPlatforms,
+    });
+  };
+
+  const nextStep = () => {
+    if (step === 1) {
+      // Validate step 1 fields
+      const { prompt, title, duration, postingTime, contentStyle } = form.getValues();
+      if (!prompt || !title) {
+        toast({
+          title: "Please fill in all required fields",
+          description: "Campaign prompt and title are required.",
+          variant: "destructive",
+        });
+        return;
+      }
+    } else if (step === 2) {
+      // Validate step 2 fields
+      if (selectedPlatforms.length === 0) {
+        toast({
+          title: "Select at least one platform",
+          description: "Choose where you want to publish your content.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+    setStep(step + 1);
+  };
+
+  const prevStep = () => setStep(step - 1);
+
+  return (
+    <div className="min-h-screen bg-slate-50">
+      <Navigation />
+      
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
+        <div className="flex items-center mb-8">
+          <Link href="/campaigns">
+            <Button variant="ghost" className="mr-4">
+              <ArrowLeft className="w-5 h-5 mr-2" />
+              Back to Campaigns
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-3xl font-black text-slate-900">✨ Create New Campaign</h1>
+            <p className="text-slate-600">Turn your ideas into engaging social media content</p>
+          </div>
+        </div>
+
+        {/* Step Indicator */}
+        <div className="flex items-center justify-center space-x-4 mb-8">
+          <div className="flex items-center">
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold ${
+              step >= 1 ? "gradient-electric-violet" : "bg-slate-200"
+            }`}>
+              1
+            </div>
+            <span className={`ml-2 font-semibold ${step >= 1 ? "text-slate-900" : "text-slate-500"}`}>
+              Campaign Details
+            </span>
+          </div>
+          <div className={`w-12 h-1 rounded-full ${step >= 2 ? "gradient-electric-violet" : "bg-slate-200"}`}></div>
+          <div className="flex items-center">
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold ${
+              step >= 2 ? "gradient-electric-violet" : "bg-slate-200"
+            }`}>
+              2
+            </div>
+            <span className={`ml-2 font-medium ${step >= 2 ? "text-slate-900" : "text-slate-500"}`}>
+              Platforms
+            </span>
+          </div>
+          <div className={`w-12 h-1 rounded-full ${step >= 3 ? "gradient-electric-violet" : "bg-slate-200"}`}></div>
+          <div className="flex items-center">
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold ${
+              step >= 3 ? "gradient-electric-violet" : "bg-slate-200"
+            }`}>
+              3
+            </div>
+            <span className={`ml-2 font-medium ${step >= 3 ? "text-slate-900" : "text-slate-500"}`}>
+              Review
+            </span>
+          </div>
+        </div>
+
+        <form onSubmit={form.handleSubmit(onSubmit)}>
+          <Card className="sparkwave-card">
+            <CardHeader className="gradient-electric-violet text-white">
+              <CardTitle className="text-2xl flex items-center">
+                {step === 1 && (
+                  <>
+                    <Target className="w-6 h-6 mr-2" />
+                    What do you want to share with the world?
+                  </>
+                )}
+                {step === 2 && (
+                  <>
+                    <Sparkles className="w-6 h-6 mr-2" />
+                    Choose Your Platforms
+                  </>
+                )}
+                {step === 3 && (
+                  <>
+                    <Calendar className="w-6 h-6 mr-2" />
+                    Review & Launch
+                  </>
+                )}
+              </CardTitle>
+            </CardHeader>
+
+            <CardContent className="p-8 space-y-8">
+              {/* Step 1: Campaign Details */}
+              {step === 1 && (
+                <>
+                  {/* Campaign Title */}
+                  <div className="space-y-2">
+                    <Label htmlFor="title" className="text-lg font-bold text-slate-900">
+                      📝 Campaign Title
+                    </Label>
+                    <Input
+                      id="title"
+                      placeholder="e.g., Daily AI Innovation Tips"
+                      {...form.register("title")}
+                      className="sparkwave-input"
+                    />
+                    {form.formState.errors.title && (
+                      <p className="text-red-500 text-sm">{form.formState.errors.title.message}</p>
+                    )}
+                  </div>
+
+                  {/* Campaign Prompt */}
+                  <div className="space-y-2">
+                    <Label htmlFor="prompt" className="text-lg font-bold text-slate-900">
+                      🎯 Content Theme
+                    </Label>
+                    <Textarea
+                      id="prompt"
+                      rows={4}
+                      placeholder="Describe your content theme... e.g., 'Daily productivity tips for remote workers' or 'Inspirational quotes about entrepreneurship'"
+                      {...form.register("prompt")}
+                      className="sparkwave-input resize-none"
+                    />
+                    <p className="text-sm text-slate-500">💡 Tip: Be specific! Better prompts create more engaging content.</p>
+                    {form.formState.errors.prompt && (
+                      <p className="text-red-500 text-sm">{form.formState.errors.prompt.message}</p>
+                    )}
+                  </div>
+
+                  {/* Description */}
+                  <div className="space-y-2">
+                    <Label htmlFor="description" className="text-lg font-bold text-slate-900">
+                      📄 Description (Optional)
+                    </Label>
+                    <Textarea
+                      id="description"
+                      rows={2}
+                      placeholder="Brief description of your campaign goals..."
+                      {...form.register("description")}
+                      className="sparkwave-input resize-none"
+                    />
+                  </div>
+
+                  {/* Campaign Settings */}
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="duration" className="text-lg font-bold text-slate-900">
+                        📅 Campaign Duration
+                      </Label>
+                      <Select onValueChange={(value) => form.setValue("duration", parseInt(value))}>
+                        <SelectTrigger className="sparkwave-input">
+                          <SelectValue placeholder="Select duration" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="7">7 days</SelectItem>
+                          <SelectItem value="14">14 days</SelectItem>
+                          <SelectItem value="30">30 days</SelectItem>
+                          <SelectItem value="60">60 days</SelectItem>
+                          <SelectItem value="90">90 days</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="postingTime" className="text-lg font-bold text-slate-900">
+                        ⏰ Posting Time
+                      </Label>
+                      <Select onValueChange={(value) => form.setValue("postingTime", value)}>
+                        <SelectTrigger className="sparkwave-input">
+                          <SelectValue placeholder="Select time" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="09:00">9:00 AM</SelectItem>
+                          <SelectItem value="12:00">12:00 PM</SelectItem>
+                          <SelectItem value="15:00">3:00 PM</SelectItem>
+                          <SelectItem value="18:00">6:00 PM</SelectItem>
+                          <SelectItem value="20:00">8:00 PM</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Content Style */}
+                  <div className="space-y-4">
+                    <Label className="text-lg font-bold text-slate-900">
+                      🎨 Content Style
+                    </Label>
+                    <div className="grid md:grid-cols-3 gap-4">
+                      {CONTENT_STYLES.map((style) => {
+                        const Icon = style.icon;
+                        return (
+                          <div
+                            key={style.id}
+                            className={`border-2 p-4 rounded-2xl cursor-pointer transition-all ${
+                              form.watch("contentStyle") === style.id
+                                ? "border-electric-blue bg-blue-50"
+                                : "border-slate-200 bg-white hover:border-electric-blue"
+                            }`}
+                            onClick={() => form.setValue("contentStyle", style.id)}
+                          >
+                            <div className="text-center">
+                              <Icon className={`text-2xl mb-2 mx-auto ${
+                                form.watch("contentStyle") === style.id ? "text-electric-blue" : "text-slate-400"
+                              }`} />
+                              <h6 className="font-bold text-slate-900">{style.name}</h6>
+                              <p className="text-sm text-slate-600">{style.description}</p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Step 2: Platform Selection */}
+              {step === 2 && (
+                <PlatformSelector
+                  selectedPlatforms={selectedPlatforms}
+                  onPlatformsChange={setSelectedPlatforms}
+                />
+              )}
+
+              {/* Step 3: Review */}
+              {step === 3 && (
+                <div className="space-y-6">
+                  <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-6 rounded-2xl border border-blue-100">
+                    <h3 className="text-xl font-bold text-slate-900 mb-4">Campaign Summary</h3>
+                    
+                    <div className="grid gap-4">
+                      <div>
+                        <Label className="font-semibold text-slate-700">Title:</Label>
+                        <p className="text-slate-900">{form.watch("title")}</p>
+                      </div>
+                      
+                      <div>
+                        <Label className="font-semibold text-slate-700">Content Theme:</Label>
+                        <p className="text-slate-900">{form.watch("prompt")}</p>
+                      </div>
+                      
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div>
+                          <Label className="font-semibold text-slate-700">Duration:</Label>
+                          <p className="text-slate-900">{form.watch("duration")} days</p>
+                        </div>
+                        <div>
+                          <Label className="font-semibold text-slate-700">Posting Time:</Label>
+                          <p className="text-slate-900">{form.watch("postingTime")}</p>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <Label className="font-semibold text-slate-700">Content Style:</Label>
+                        <p className="text-slate-900 capitalize">{form.watch("contentStyle")}</p>
+                      </div>
+                      
+                      <div>
+                        <Label className="font-semibold text-slate-700">Platforms:</Label>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {selectedPlatforms.map((platform) => (
+                            <Badge key={platform} className="bg-electric-blue text-white">
+                              {platform}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-emerald-50 p-6 rounded-2xl border border-emerald-100">
+                    <h4 className="text-lg font-bold text-emerald-900 mb-2">🚀 What happens next?</h4>
+                    <ul className="space-y-2 text-emerald-800">
+                      <li>• AI will generate unique posts based on your theme</li>
+                      <li>• Content will be optimized for each selected platform</li>
+                      <li>• Posts will be scheduled automatically at your chosen time</li>
+                      <li>• You can review and edit any post before it goes live</li>
+                    </ul>
+                  </div>
+                </div>
+              )}
+
+              {/* Navigation Buttons */}
+              <div className="flex justify-between pt-6 border-t border-slate-100">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={prevStep}
+                  disabled={step === 1}
+                  className="font-semibold"
+                >
+                  {step > 1 && <ArrowLeft className="w-4 h-4 mr-2" />}
+                  {step === 1 ? "Cancel" : "Previous"}
+                </Button>
+
+                {step < 3 ? (
+                  <Button
+                    type="button"
+                    onClick={nextStep}
+                    className="sparkwave-button-primary"
+                  >
+                    Continue
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                ) : (
+                  <Button
+                    type="submit"
+                    disabled={createCampaignMutation.isPending}
+                    className="sparkwave-button-primary"
+                  >
+                    {createCampaignMutation.isPending ? "Creating..." : "Create Campaign"}
+                    <Sparkles className="w-4 h-4 ml-2" />
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </form>
+      </div>
+    </div>
+  );
+}
