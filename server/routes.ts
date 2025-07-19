@@ -5,7 +5,8 @@ import { insertUserSchema, insertCampaignSchema, insertSocialAccountSchema } fro
 import { authMiddleware, optionalAuth, rateLimitByUser } from "./middleware/auth";
 import { generateAIContent } from "./services/ai-generator";
 import { schedulePost } from "./services/scheduler";
-import { exchangeCodeForToken, validateToken, refreshToken } from "./services/social-auth";
+import { exchangeCodeForToken } from "./services/oauth-service";
+import { validateToken, refreshToken } from "./services/social-auth";
 import bcrypt from "bcrypt";
 import "./types";
 
@@ -188,6 +189,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Delete social account error:", error);
       res.status(500).json({ message: "Failed to delete social account" });
+    }
+  });
+
+  // OAuth callback routes
+  app.get("/auth/:platform/callback", async (req, res) => {
+    try {
+      const { platform } = req.params;
+      const { code, state, error } = req.query;
+
+      if (error) {
+        return res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5000'}?error=oauth_error&message=${encodeURIComponent(error as string)}`);
+      }
+
+      if (!code) {
+        return res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5000'}?error=oauth_error&message=No authorization code received`);
+      }
+
+      // Use state parameter to get user session (in production, implement proper state validation)
+      const userId = req.session.userId;
+      if (!userId) {
+        return res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5000'}?error=auth_required&message=Please log in first`);
+      }
+
+      const redirectUri = `${process.env.SERVER_URL || 'http://localhost:5000'}/auth/${platform}/callback`;
+      
+      try {
+        const tokenData = await exchangeCodeForToken(platform, code as string, redirectUri);
+        
+        // Save the social account to database
+        await storage.createSocialAccount({
+          userId,
+          platform,
+          platformUserId: tokenData.userId,
+          username: tokenData.username,
+          accessToken: tokenData.accessToken,
+          refreshToken: tokenData.refreshToken,
+          expiresAt: tokenData.expiresAt,
+        });
+
+        res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5000'}/create-campaign?connected=${platform}`);
+      } catch (tokenError) {
+        console.error(`OAuth token exchange error for ${platform}:`, tokenError);
+        res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5000'}?error=oauth_error&message=${encodeURIComponent(tokenError.message)}`);
+      }
+    } catch (error) {
+      console.error("OAuth callback error:", error);
+      res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5000'}?error=oauth_error&message=Authentication failed`);
+    }
+  });
+
+  // OAuth initiate routes (for server-side redirects if needed)
+  app.get("/auth/:platform/connect", authMiddleware, async (req, res) => {
+    try {
+      const { platform } = req.params;
+      const redirectUri = `${process.env.SERVER_URL || 'http://localhost:5000'}/auth/${platform}/callback`;
+      
+      let authUrl = '';
+      switch (platform) {
+        case 'instagram':
+          const instagramClientId = process.env.INSTAGRAM_CLIENT_ID || 'your-instagram-client-id';
+          authUrl = `https://api.instagram.com/oauth/authorize?client_id=${instagramClientId}&redirect_uri=${redirectUri}&scope=user_profile,user_media&response_type=code`;
+          break;
+        case 'linkedin':
+          const linkedinClientId = process.env.LINKEDIN_CLIENT_ID || 'your-linkedin-client-id';
+          authUrl = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${linkedinClientId}&redirect_uri=${redirectUri}&scope=r_liteprofile r_emailaddress w_member_social`;
+          break;
+        case 'facebook':
+          const facebookClientId = process.env.FACEBOOK_CLIENT_ID || 'your-facebook-client-id';
+          authUrl = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${facebookClientId}&redirect_uri=${redirectUri}&scope=pages_manage_posts,pages_read_engagement&response_type=code`;
+          break;
+        case 'twitter':
+          const twitterClientId = process.env.TWITTER_CLIENT_ID || 'your-twitter-client-id';
+          authUrl = `https://twitter.com/i/oauth2/authorize?response_type=code&client_id=${twitterClientId}&redirect_uri=${redirectUri}&scope=tweet.read tweet.write users.read&state=state`;
+          break;
+        default:
+          return res.status(400).json({ message: 'Unsupported platform' });
+      }
+      
+      res.redirect(authUrl);
+    } catch (error) {
+      console.error("OAuth initiate error:", error);
+      res.status(500).json({ message: "Failed to initiate OAuth" });
     }
   });
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
@@ -31,8 +31,13 @@ import {
   Smile,
   X,
   Zap,
-  Bot
+  Bot,
+  Plus,
+  ExternalLink,
+  CheckCircle,
+  AlertCircle
 } from "lucide-react";
+import { SiInstagram, SiLinkedin, SiFacebook, SiX } from "react-icons/si";
 import { z } from "zod";
 
 const campaignFormSchema = insertCampaignSchema.omit({ userId: true }).extend({
@@ -65,10 +70,44 @@ const CONTENT_STYLES = [
 ];
 
 export default function CreateCampaign() {
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(0); // Start with step 0 for social connection check
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
+  const [connectedAccounts, setConnectedAccounts] = useState<any[]>([]);
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+
+  // Handle OAuth success/error messages from URL parameters
+  React.useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const connected = urlParams.get('connected');
+    const error = urlParams.get('error');
+    const message = urlParams.get('message');
+
+    if (connected) {
+      toast({
+        title: `${connected.charAt(0).toUpperCase() + connected.slice(1)} connected!`,
+        description: "Your account has been successfully connected. You can now create campaigns.",
+      });
+      // Clean URL
+      window.history.replaceState({}, '', window.location.pathname);
+    } else if (error) {
+      toast({
+        title: "Connection failed",
+        description: message || "There was an error connecting your account. Please try again.",
+        variant: "destructive",
+      });
+      // Clean URL
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, [toast]);
+
+  // Fetch connected social accounts
+  const { data: socialAccountsData, isLoading: socialAccountsLoading } = useQuery({
+    queryKey: ["/api/social-accounts"],
+  });
+
+  const accounts = socialAccountsData?.accounts || [];
+  const availablePlatforms = accounts.filter(account => account.isActive);
 
   const form = useForm<CampaignFormData>({
     resolver: zodResolver(campaignFormSchema),
@@ -117,7 +156,17 @@ export default function CreateCampaign() {
   };
 
   const nextStep = () => {
-    if (step === 1) {
+    if (step === 0) {
+      // Check if user has connected accounts
+      if (availablePlatforms.length === 0) {
+        toast({
+          title: "Connect social media accounts first",
+          description: "You need to connect at least one social platform to create campaigns.",
+          variant: "destructive",
+        });
+        return;
+      }
+    } else if (step === 1) {
       // Validate step 1 fields
       const { prompt, title, duration, postingTime, contentStyle } = form.getValues();
       if (!prompt || !title) {
@@ -142,6 +191,39 @@ export default function CreateCampaign() {
     setStep(step + 1);
   };
 
+  // OAuth connection functions
+  const connectInstagram = () => {
+    const clientId = import.meta.env.VITE_INSTAGRAM_CLIENT_ID || "your-instagram-client-id";
+    const redirectUri = `${window.location.origin}/auth/instagram/callback`;
+    const scope = "user_profile,user_media";
+    const authUrl = `https://api.instagram.com/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&response_type=code`;
+    window.open(authUrl, "_blank", "width=600,height=600");
+  };
+
+  const connectLinkedIn = () => {
+    const clientId = import.meta.env.VITE_LINKEDIN_CLIENT_ID || "your-linkedin-client-id";
+    const redirectUri = `${window.location.origin}/auth/linkedin/callback`;
+    const scope = "r_liteprofile r_emailaddress w_member_social";
+    const authUrl = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}`;
+    window.open(authUrl, "_blank", "width=600,height=600");
+  };
+
+  const connectFacebook = () => {
+    const clientId = import.meta.env.VITE_FACEBOOK_CLIENT_ID || "your-facebook-client-id";
+    const redirectUri = `${window.location.origin}/auth/facebook/callback`;
+    const scope = "pages_manage_posts,pages_read_engagement";
+    const authUrl = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&response_type=code`;
+    window.open(authUrl, "_blank", "width=600,height=600");
+  };
+
+  const connectTwitter = () => {
+    const clientId = import.meta.env.VITE_TWITTER_CLIENT_ID || "your-twitter-client-id";
+    const redirectUri = `${window.location.origin}/auth/twitter/callback`;
+    const scope = "tweet.read tweet.write users.read";
+    const authUrl = `https://twitter.com/i/oauth2/authorize?response_type=code&client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&state=state`;
+    window.open(authUrl, "_blank", "width=600,height=600");
+  };
+
   const prevStep = () => setStep(step - 1);
 
   return (
@@ -164,36 +246,47 @@ export default function CreateCampaign() {
         </div>
 
         {/* Step Indicator */}
-        <div className="flex items-center justify-center space-x-4 mb-8">
+        <div className="flex items-center justify-center space-x-2 mb-8 overflow-x-auto">
+          <div className="flex items-center">
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold ${
+              step >= 0 ? "gradient-electric-violet" : "bg-slate-200"
+            }`}>
+              1
+            </div>
+            <span className={`ml-2 font-semibold text-sm ${step >= 0 ? "text-slate-900" : "text-slate-500"}`}>
+              Connect Accounts
+            </span>
+          </div>
+          <div className={`w-8 h-1 rounded-full ${step >= 1 ? "gradient-electric-violet" : "bg-slate-200"}`}></div>
           <div className="flex items-center">
             <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold ${
               step >= 1 ? "gradient-electric-violet" : "bg-slate-200"
             }`}>
-              1
+              2
             </div>
-            <span className={`ml-2 font-semibold ${step >= 1 ? "text-slate-900" : "text-slate-500"}`}>
+            <span className={`ml-2 font-semibold text-sm ${step >= 1 ? "text-slate-900" : "text-slate-500"}`}>
               Campaign Details
             </span>
           </div>
-          <div className={`w-12 h-1 rounded-full ${step >= 2 ? "gradient-electric-violet" : "bg-slate-200"}`}></div>
+          <div className={`w-8 h-1 rounded-full ${step >= 2 ? "gradient-electric-violet" : "bg-slate-200"}`}></div>
           <div className="flex items-center">
             <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold ${
               step >= 2 ? "gradient-electric-violet" : "bg-slate-200"
             }`}>
-              2
+              3
             </div>
-            <span className={`ml-2 font-medium ${step >= 2 ? "text-slate-900" : "text-slate-500"}`}>
+            <span className={`ml-2 font-medium text-sm ${step >= 2 ? "text-slate-900" : "text-slate-500"}`}>
               Platforms
             </span>
           </div>
-          <div className={`w-12 h-1 rounded-full ${step >= 3 ? "gradient-electric-violet" : "bg-slate-200"}`}></div>
+          <div className={`w-8 h-1 rounded-full ${step >= 3 ? "gradient-electric-violet" : "bg-slate-200"}`}></div>
           <div className="flex items-center">
             <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold ${
               step >= 3 ? "gradient-electric-violet" : "bg-slate-200"
             }`}>
-              3
+              4
             </div>
-            <span className={`ml-2 font-medium ${step >= 3 ? "text-slate-900" : "text-slate-500"}`}>
+            <span className={`ml-2 font-medium text-sm ${step >= 3 ? "text-slate-900" : "text-slate-500"}`}>
               Review
             </span>
           </div>
@@ -203,6 +296,12 @@ export default function CreateCampaign() {
           <Card className="sparkwave-card">
             <CardHeader className="gradient-electric-violet text-white">
               <CardTitle className="text-2xl flex items-center">
+                {step === 0 && (
+                  <>
+                    <ExternalLink className="w-6 h-6 mr-2" />
+                    Connect Your Social Media Accounts
+                  </>
+                )}
                 {step === 1 && (
                   <>
                     <Target className="w-6 h-6 mr-2" />
@@ -225,6 +324,142 @@ export default function CreateCampaign() {
             </CardHeader>
 
             <CardContent className="p-8 space-y-8">
+              {/* Step 0: Social Account Connection */}
+              {step === 0 && (
+                <div className="space-y-6">
+                  <div className="text-center">
+                    <h3 className="text-2xl font-bold text-slate-900 mb-4">
+                      Connect your social media accounts to get started
+                    </h3>
+                    <p className="text-slate-600 text-lg">
+                      We'll use OAuth to securely connect your accounts so we can post content automatically.
+                    </p>
+                  </div>
+
+                  {socialAccountsLoading ? (
+                    <div className="grid md:grid-cols-2 gap-4">
+                      {[1, 2, 3, 4].map((i) => (
+                        <div key={i} className="animate-pulse">
+                          <div className="h-24 bg-gray-200 rounded-xl"></div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="grid md:grid-cols-2 gap-4">
+                      {/* Instagram Connection */}
+                      <Card className="border-2 border-dashed border-gray-300 hover:border-pink-400 transition-colors cursor-pointer" onClick={connectInstagram}>
+                        <CardContent className="p-6">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center">
+                              <div className="w-12 h-12 bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 rounded-xl flex items-center justify-center mr-4">
+                                <SiInstagram className="w-6 h-6 text-white" />
+                              </div>
+                              <div>
+                                <h4 className="font-semibold text-slate-900">Instagram</h4>
+                                <p className="text-sm text-slate-500">Connect your Instagram account</p>
+                              </div>
+                            </div>
+                            {availablePlatforms.some(p => p.platform === 'instagram') ? (
+                              <CheckCircle className="w-6 h-6 text-green-500" />
+                            ) : (
+                              <Plus className="w-6 h-6 text-slate-400" />
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      {/* LinkedIn Connection */}
+                      <Card className="border-2 border-dashed border-gray-300 hover:border-blue-500 transition-colors cursor-pointer" onClick={connectLinkedIn}>
+                        <CardContent className="p-6">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center">
+                              <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center mr-4">
+                                <SiLinkedin className="w-6 h-6 text-white" />
+                              </div>
+                              <div>
+                                <h4 className="font-semibold text-slate-900">LinkedIn</h4>
+                                <p className="text-sm text-slate-500">Connect your LinkedIn account</p>
+                              </div>
+                            </div>
+                            {availablePlatforms.some(p => p.platform === 'linkedin') ? (
+                              <CheckCircle className="w-6 h-6 text-green-500" />
+                            ) : (
+                              <Plus className="w-6 h-6 text-slate-400" />
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      {/* Facebook Connection */}
+                      <Card className="border-2 border-dashed border-gray-300 hover:border-blue-600 transition-colors cursor-pointer" onClick={connectFacebook}>
+                        <CardContent className="p-6">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center">
+                              <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center mr-4">
+                                <SiFacebook className="w-6 h-6 text-white" />
+                              </div>
+                              <div>
+                                <h4 className="font-semibold text-slate-900">Facebook</h4>
+                                <p className="text-sm text-slate-500">Connect your Facebook page</p>
+                              </div>
+                            </div>
+                            {availablePlatforms.some(p => p.platform === 'facebook') ? (
+                              <CheckCircle className="w-6 h-6 text-green-500" />
+                            ) : (
+                              <Plus className="w-6 h-6 text-slate-400" />
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      {/* Twitter Connection */}
+                      <Card className="border-2 border-dashed border-gray-300 hover:border-slate-800 transition-colors cursor-pointer" onClick={connectTwitter}>
+                        <CardContent className="p-6">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center">
+                              <div className="w-12 h-12 bg-black rounded-xl flex items-center justify-center mr-4">
+                                <SiX className="w-6 h-6 text-white" />
+                              </div>
+                              <div>
+                                <h4 className="font-semibold text-slate-900">Twitter/X</h4>
+                                <p className="text-sm text-slate-500">Connect your Twitter account</p>
+                              </div>
+                            </div>
+                            {availablePlatforms.some(p => p.platform === 'twitter') ? (
+                              <CheckCircle className="w-6 h-6 text-green-500" />
+                            ) : (
+                              <Plus className="w-6 h-6 text-slate-400" />
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  )}
+
+                  {availablePlatforms.length > 0 && (
+                    <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+                      <div className="flex items-center">
+                        <CheckCircle className="w-5 h-5 text-green-600 mr-2" />
+                        <span className="font-medium text-green-800">
+                          {availablePlatforms.length} account{availablePlatforms.length > 1 ? 's' : ''} connected
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {availablePlatforms.length === 0 && (
+                    <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
+                      <div className="flex items-center">
+                        <AlertCircle className="w-5 h-5 text-orange-600 mr-2" />
+                        <span className="font-medium text-orange-800">
+                          Please connect at least one social media account to continue
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Step 1: Campaign Details */}
               {step === 1 && (
                 <>
