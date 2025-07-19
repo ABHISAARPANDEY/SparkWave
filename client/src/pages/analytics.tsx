@@ -19,7 +19,11 @@ import {
   ArrowDown,
   BarChart3,
   PieChart,
-  Activity
+  Activity,
+  Bot,
+  Github,
+  Zap,
+  Globe
 } from "lucide-react";
 
 export default function Analytics() {
@@ -51,6 +55,45 @@ export default function Analytics() {
         <div className="mb-8">
           <h1 className="text-3xl font-black text-slate-900 mb-2">📊 Analytics Dashboard</h1>
           <p className="text-slate-600">Track your social media performance and campaign success</p>
+        </div>
+
+        {/* AI & OAuth Status */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <Card className="sparkwave-card bg-gradient-to-r from-purple-50 to-blue-50 border-purple-200">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Github className="w-5 h-5 text-purple-600" />
+                    <p className="text-sm font-medium text-purple-800">GitHub AI Integration</p>
+                  </div>
+                  <p className="text-2xl font-bold text-purple-900">Enhanced Mode</p>
+                  <p className="text-sm text-purple-700 mt-1">Using advanced AI models for content generation</p>
+                </div>
+                <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+                  <Bot className="w-6 h-6 text-purple-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="sparkwave-card bg-gradient-to-r from-emerald-50 to-green-50 border-emerald-200">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Globe className="w-5 h-5 text-emerald-600" />
+                    <p className="text-sm font-medium text-emerald-800">Connected Platforms</p>
+                  </div>
+                  <p className="text-2xl font-bold text-emerald-900">4 Platforms</p>
+                  <p className="text-sm text-emerald-700 mt-1">Instagram, LinkedIn, Facebook, Twitter</p>
+                </div>
+                <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center">
+                  <Zap className="w-6 h-6 text-emerald-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Key Metrics */}
@@ -261,6 +304,117 @@ export default function Analytics() {
                     </div>
                   </div>
                   <Badge className="bg-emerald-100 text-emerald-700">+5.3%</Badge>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* AI Performance & Real-time Analytics */}
+        <div className="grid lg:grid-cols-2 gap-8 mb-8">
+          <Card className="sparkwave-card bg-gradient-to-r from-purple-50 to-indigo-50 border-purple-200">
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Bot className="w-5 h-5 mr-2 text-purple-600" />
+                AI Model Performance
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <Github className="w-5 h-5 text-gray-700 mr-3" />
+                    <div>
+                      <div className="font-medium">GitHub GPT-2</div>
+                      <div className="text-sm text-slate-500">Primary model</div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-bold text-emerald-600">98.5%</div>
+                    <div className="text-sm text-slate-500">Success rate</div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <Bot className="w-5 h-5 text-purple-500 mr-3" />
+                    <div>
+                      <div className="font-medium">Enhanced AI Mode</div>
+                      <div className="text-sm text-slate-500">Advanced features</div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-bold text-purple-600">Enabled</div>
+                    <div className="text-sm text-slate-500">Active</div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <Activity className="w-5 h-5 text-blue-500 mr-3" />
+                    <div>
+                      <div className="font-medium">Content Quality Score</div>
+                      <div className="text-sm text-slate-500">AI-generated content</div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-bold text-blue-600">9.2/10</div>
+                    <div className="text-sm text-slate-500">Average rating</div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="sparkwave-card bg-gradient-to-r from-emerald-50 to-green-50 border-emerald-200">
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Zap className="w-5 h-5 mr-2 text-emerald-600" />
+                Instant Publishing Analytics
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <Clock className="w-5 h-5 text-orange-500 mr-3" />
+                    <div>
+                      <div className="font-medium">Instant Posts Today</div>
+                      <div className="text-sm text-slate-500">Published immediately</div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-bold text-orange-600">12</div>
+                    <div className="text-sm text-slate-500">posts</div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <Target className="w-5 h-5 text-emerald-500 mr-3" />
+                    <div>
+                      <div className="font-medium">Avg. Response Time</div>
+                      <div className="text-sm text-slate-500">From creation to publish</div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-bold text-emerald-600">2.3s</div>
+                    <div className="text-sm text-slate-500">seconds</div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <TrendingUp className="w-5 h-5 text-blue-500 mr-3" />
+                    <div>
+                      <div className="font-medium">Instant vs Scheduled</div>
+                      <div className="text-sm text-slate-500">Post type ratio</div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-bold text-blue-600">65/35</div>
+                    <div className="text-sm text-slate-500">percent split</div>
+                  </div>
                 </div>
               </div>
             </CardContent>

@@ -4,6 +4,7 @@ import {
   campaigns, 
   posts, 
   aiModels,
+  analytics,
   type User, 
   type InsertUser,
   type SocialAccount,
@@ -13,7 +14,9 @@ import {
   type Post,
   type InsertPost,
   type AiModel,
-  type InsertAiModel
+  type InsertAiModel,
+  type Analytics,
+  type InsertAnalytics
 } from "@shared/schema";
 
 export interface IStorage {
@@ -50,6 +53,12 @@ export interface IStorage {
   getAiModels(): Promise<AiModel[]>;
   getActiveAiModel(): Promise<AiModel | undefined>;
   createAiModel(model: InsertAiModel): Promise<AiModel>;
+
+  // Analytics
+  createAnalytics(analytics: InsertAnalytics): Promise<Analytics>;
+  getAnalyticsForUser(userId: number): Promise<Analytics[]>;
+  getAnalyticsForCampaign(campaignId: number): Promise<Analytics[]>;
+  getAnalyticsForPost(postId: number): Promise<Analytics[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -58,6 +67,7 @@ export class MemStorage implements IStorage {
   private campaigns: Map<number, Campaign>;
   private posts: Map<number, Post>;
   private aiModels: Map<number, AiModel>;
+  private analytics: Map<number, Analytics>;
   private currentId: number;
 
   constructor() {
@@ -66,6 +76,7 @@ export class MemStorage implements IStorage {
     this.campaigns = new Map();
     this.posts = new Map();
     this.aiModels = new Map();
+    this.analytics = new Map();
     this.currentId = 1;
 
     // Initialize with default AI models
@@ -202,6 +213,8 @@ export class MemStorage implements IStorage {
       contentStyle: insertCampaign.contentStyle,
       status: insertCampaign.status ?? null,
       isActive: insertCampaign.isActive ?? null,
+      postInstantly: insertCampaign.postInstantly ?? null,
+      enhancedAI: insertCampaign.enhancedAI ?? null,
       createdAt: now,
       updatedAt: now
     };
@@ -293,6 +306,42 @@ export class MemStorage implements IStorage {
     };
     this.aiModels.set(id, model);
     return model;
+  }
+
+  // Analytics
+  async createAnalytics(insertAnalytics: InsertAnalytics): Promise<Analytics> {
+    const id = this.currentId++;
+    const analytics: Analytics = {
+      id,
+      userId: insertAnalytics.userId,
+      postId: insertAnalytics.postId ?? null,
+      campaignId: insertAnalytics.campaignId ?? null,
+      platform: insertAnalytics.platform,
+      metric: insertAnalytics.metric,
+      value: insertAnalytics.value,
+      timestamp: insertAnalytics.timestamp ?? null,
+      createdAt: new Date()
+    };
+    this.analytics.set(id, analytics);
+    return analytics;
+  }
+
+  async getAnalyticsForUser(userId: number): Promise<Analytics[]> {
+    return Array.from(this.analytics.values()).filter(
+      analytics => analytics.userId === userId
+    );
+  }
+
+  async getAnalyticsForCampaign(campaignId: number): Promise<Analytics[]> {
+    return Array.from(this.analytics.values()).filter(
+      analytics => analytics.campaignId === campaignId
+    );
+  }
+
+  async getAnalyticsForPost(postId: number): Promise<Analytics[]> {
+    return Array.from(this.analytics.values()).filter(
+      analytics => analytics.postId === postId
+    );
   }
 }
 

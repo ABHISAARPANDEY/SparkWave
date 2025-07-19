@@ -36,10 +36,12 @@ export const campaigns = pgTable("campaigns", {
   description: text("description"),
   platforms: text("platforms").array().notNull(), // ["instagram", "linkedin"]
   duration: integer("duration").notNull(), // days
-  postingTime: text("posting_time").notNull(), // "15:00"
+  postingTime: text("posting_time").notNull(), // "15:00" or "instant"
   contentStyle: text("content_style").notNull(), // professional, inspirational, casual
   status: text("status").default("active"), // active, paused, completed
   isActive: boolean("is_active").default(true),
+  postInstantly: boolean("post_instantly").default(false), // for instant posting
+  enhancedAI: boolean("enhanced_ai").default(false), // for AI enhancement features
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -65,6 +67,18 @@ export const aiModels = pgTable("ai_models", {
   apiKey: text("api_key"),
   isActive: boolean("is_active").default(true),
   isFree: boolean("is_free").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const analytics = pgTable("analytics", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  postId: integer("post_id").references(() => posts.id),
+  campaignId: integer("campaign_id").references(() => campaigns.id),
+  platform: text("platform").notNull(),
+  metric: text("metric").notNull(), // likes, comments, shares, impressions, reach
+  value: integer("value").notNull(),
+  timestamp: timestamp("timestamp").defaultNow(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -96,6 +110,11 @@ export const insertAiModelSchema = createInsertSchema(aiModels).omit({
   createdAt: true,
 });
 
+export const insertAnalyticsSchema = createInsertSchema(analytics).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -107,3 +126,5 @@ export type Post = typeof posts.$inferSelect;
 export type InsertPost = z.infer<typeof insertPostSchema>;
 export type AiModel = typeof aiModels.$inferSelect;
 export type InsertAiModel = z.infer<typeof insertAiModelSchema>;
+export type Analytics = typeof analytics.$inferSelect;
+export type InsertAnalytics = z.infer<typeof insertAnalyticsSchema>;

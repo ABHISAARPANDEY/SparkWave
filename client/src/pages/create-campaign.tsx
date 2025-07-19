@@ -10,6 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import Navigation from "@/components/navigation";
 import PlatformSelector from "@/components/platform-selector";
 import { useToast } from "@/hooks/use-toast";
@@ -27,12 +29,16 @@ import {
   Lightbulb,
   Heart,
   Smile,
-  X
+  X,
+  Zap,
+  Bot
 } from "lucide-react";
 import { z } from "zod";
 
 const campaignFormSchema = insertCampaignSchema.omit({ userId: true }).extend({
   platforms: z.array(z.string()).min(1, "Select at least one platform"),
+  postInstantly: z.boolean().optional(),
+  enhancedAI: z.boolean().optional(),
 });
 
 type CampaignFormData = z.infer<typeof campaignFormSchema>;
@@ -73,6 +79,8 @@ export default function CreateCampaign() {
       platforms: [],
       duration: 30,
       postingTime: "15:00",
+      postInstantly: false,
+      enhancedAI: false,
       contentStyle: "professional",
       status: "active",
       isActive: true,
@@ -279,6 +287,7 @@ export default function CreateCampaign() {
                           <SelectValue placeholder="Select duration" />
                         </SelectTrigger>
                         <SelectContent>
+                          <SelectItem value="1">Post instantly</SelectItem>
                           <SelectItem value="7">7 days</SelectItem>
                           <SelectItem value="14">14 days</SelectItem>
                           <SelectItem value="30">30 days</SelectItem>
@@ -292,11 +301,22 @@ export default function CreateCampaign() {
                       <Label htmlFor="postingTime" className="text-lg font-bold text-slate-900">
                         ⏰ Posting Time
                       </Label>
-                      <Select onValueChange={(value) => form.setValue("postingTime", value)}>
+                      <Select 
+                        onValueChange={(value) => {
+                          form.setValue("postingTime", value);
+                          form.setValue("postInstantly", value === "instant");
+                        }}
+                      >
                         <SelectTrigger className="sparkwave-input">
                           <SelectValue placeholder="Select time" />
                         </SelectTrigger>
                         <SelectContent>
+                          <SelectItem value="instant">
+                            <div className="flex items-center gap-2">
+                              <Zap className="h-4 w-4 text-yellow-500" />
+                              Post instantly
+                            </div>
+                          </SelectItem>
                           <SelectItem value="09:00">9:00 AM</SelectItem>
                           <SelectItem value="12:00">12:00 PM</SelectItem>
                           <SelectItem value="15:00">3:00 PM</SelectItem>
@@ -304,6 +324,30 @@ export default function CreateCampaign() {
                           <SelectItem value="20:00">8:00 PM</SelectItem>
                         </SelectContent>
                       </Select>
+                    </div>
+                  </div>
+
+                  {/* AI Enhancement Options */}
+                  <div className="space-y-4">
+                    <Label className="text-lg font-bold text-slate-900">
+                      🤖 AI Enhancement Options
+                    </Label>
+                    <div className="bg-gradient-to-r from-purple-50 to-blue-50 p-6 rounded-2xl border border-purple-100">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-start gap-3">
+                          <Bot className="h-6 w-6 text-purple-600 mt-1" />
+                          <div>
+                            <h4 className="font-semibold text-slate-900">Enhanced AI Content Generation</h4>
+                            <p className="text-sm text-slate-600 mt-1">
+                              Use advanced GitHub AI models for higher quality, more creative content generation with better context understanding.
+                            </p>
+                          </div>
+                        </div>
+                        <Switch
+                          checked={form.watch("enhancedAI")}
+                          onCheckedChange={(checked) => form.setValue("enhancedAI", checked)}
+                        />
+                      </div>
                     </div>
                   </div>
 
@@ -368,18 +412,40 @@ export default function CreateCampaign() {
                       <div className="grid md:grid-cols-2 gap-4">
                         <div>
                           <Label className="font-semibold text-slate-700">Duration:</Label>
-                          <p className="text-slate-900">{form.watch("duration")} days</p>
+                          <p className="text-slate-900">
+                            {form.watch("postInstantly") || form.watch("postingTime") === "instant" 
+                              ? "Post instantly" 
+                              : `${form.watch("duration")} days`}
+                          </p>
                         </div>
                         <div>
                           <Label className="font-semibold text-slate-700">Posting Time:</Label>
-                          <p className="text-slate-900">{form.watch("postingTime")}</p>
+                          <p className="text-slate-900">
+                            {form.watch("postingTime") === "instant" 
+                              ? "Instant publishing" 
+                              : form.watch("postingTime")}
+                          </p>
                         </div>
                       </div>
                       
-                      <div>
-                        <Label className="font-semibold text-slate-700">Content Style:</Label>
-                        <p className="text-slate-900 capitalize">{form.watch("contentStyle")}</p>
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div>
+                          <Label className="font-semibold text-slate-700">Enhanced AI:</Label>
+                          <p className="text-slate-900">
+                            {form.watch("enhancedAI") ? (
+                              <span className="text-purple-600 font-medium">✓ Enabled</span>
+                            ) : (
+                              <span className="text-slate-500">Disabled</span>
+                            )}
+                          </p>
+                        </div>
+                        <div>
+                          <Label className="font-semibold text-slate-700">Content Style:</Label>
+                          <p className="text-slate-900 capitalize">{form.watch("contentStyle")}</p>
+                        </div>
                       </div>
+                      
+
                       
                       <div>
                         <Label className="font-semibold text-slate-700">Platforms:</Label>
@@ -397,8 +463,11 @@ export default function CreateCampaign() {
                   <div className="bg-emerald-50 p-6 rounded-2xl border border-emerald-100">
                     <h4 className="text-lg font-bold text-emerald-900 mb-2">🚀 What happens next?</h4>
                     <ul className="space-y-2 text-emerald-800">
-                      <li>• AI will generate unique posts based on your theme</li>
+                      <li>• {form.watch("enhancedAI") ? "Enhanced GitHub AI" : "AI"} will generate unique posts based on your theme</li>
                       <li>• Content will be optimized for each selected platform</li>
+                      <li>• {form.watch("postInstantly") || form.watch("postingTime") === "instant" 
+                           ? "Posts will be published immediately after generation" 
+                           : "Posts will be scheduled according to your time preferences"}</li>
                       <li>• Posts will be scheduled automatically at your chosen time</li>
                       <li>• You can review and edit any post before it goes live</li>
                     </ul>

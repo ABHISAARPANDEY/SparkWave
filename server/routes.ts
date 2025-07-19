@@ -431,6 +431,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get analytics for specific campaign
+  app.get("/api/analytics/campaigns/:id", authMiddleware, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const campaignId = parseInt(id);
+      
+      if (isNaN(campaignId)) {
+        return res.status(400).json({ message: "Invalid campaign ID" });
+      }
+
+      const campaign = await storage.getCampaign(campaignId);
+      
+      if (!campaign || campaign.userId !== req.userId) {
+        return res.status(404).json({ message: "Campaign not found" });
+      }
+
+      const analytics = await storage.getAnalyticsForCampaign(campaignId);
+      res.json({ analytics });
+    } catch (error) {
+      console.error("Get campaign analytics error:", error);
+      res.status(500).json({ message: "Failed to get campaign analytics" });
+    }
+  });
+
+  // Create analytics entry
+  app.post("/api/analytics", authMiddleware, async (req, res) => {
+    try {
+      const analyticsData = {
+        ...req.body,
+        userId: req.userId,
+      };
+      
+      const analytics = await storage.createAnalytics(analyticsData);
+      res.json({ analytics });
+    } catch (error) {
+      console.error("Create analytics error:", error);
+      res.status(400).json({ message: "Invalid analytics data" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
