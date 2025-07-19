@@ -1,5 +1,6 @@
 import { storage } from "../storage";
 import { Post, SocialAccount } from "@shared/schema";
+import { publishToSocialMedia } from "./social-posting";
 
 interface ScheduledJob {
   id: string;
@@ -127,25 +128,28 @@ class PostScheduler {
   }
 
   private async publishToPlatform(post: Post, account: SocialAccount): Promise<PublishResult> {
-    const platform = post.platform.toLowerCase();
-    
     try {
-      switch (platform) {
-        case "instagram":
-          return await this.publishToInstagram(post, account);
-        case "linkedin":
-          return await this.publishToLinkedIn(post, account);
-        case "twitter":
-        case "x":
-          return await this.publishToTwitter(post, account);
-        case "facebook":
-          return await this.publishToFacebook(post, account);
-        default:
-          throw new Error(`Unsupported platform: ${post.platform}`);
+      const result = await publishToSocialMedia({
+        content: post.content,
+        platform: post.platform,
+        socialAccountId: account.id,
+        postId: post.id,
+      });
+
+      if (!result.success) {
+        throw new Error(result.error || 'Publishing failed');
       }
+
+      return {
+        platformPostId: result.platformPostId || 'unknown',
+        engagement: {
+          reach: 0,
+          impressions: 0,
+        },
+      };
     } catch (error) {
-      console.error(`Platform-specific publishing failed for ${platform}:`, error);
-      throw new Error(`Failed to publish to ${post.platform}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error(`Publishing to ${post.platform} failed:`, error);
+      throw error;
     }
   }
 

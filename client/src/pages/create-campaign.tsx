@@ -191,37 +191,71 @@ export default function CreateCampaign() {
     setStep(step + 1);
   };
 
-  // OAuth connection functions
+  // OAuth connection functions - redirect to server-side OAuth initiation
   const connectInstagram = () => {
-    const clientId = import.meta.env.VITE_INSTAGRAM_CLIENT_ID || "your-instagram-client-id";
-    const redirectUri = `${window.location.origin}/auth/instagram/callback`;
-    const scope = "user_profile,user_media";
-    const authUrl = `https://api.instagram.com/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&response_type=code`;
-    window.open(authUrl, "_blank", "width=600,height=600");
+    // In demo mode, simulate successful connection
+    if (process.env.NODE_ENV === 'development') {
+      simulateConnection('instagram', '@demo_user');
+      return;
+    }
+    // Production: redirect to server-side OAuth
+    window.location.href = `/auth/instagram/connect`;
   };
 
   const connectLinkedIn = () => {
-    const clientId = import.meta.env.VITE_LINKEDIN_CLIENT_ID || "your-linkedin-client-id";
-    const redirectUri = `${window.location.origin}/auth/linkedin/callback`;
-    const scope = "r_liteprofile r_emailaddress w_member_social";
-    const authUrl = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}`;
-    window.open(authUrl, "_blank", "width=600,height=600");
+    // In demo mode, simulate successful connection
+    if (process.env.NODE_ENV === 'development') {
+      simulateConnection('linkedin', 'Demo User');
+      return;
+    }
+    // Production: redirect to server-side OAuth
+    window.location.href = `/auth/linkedin/connect`;
   };
 
   const connectFacebook = () => {
-    const clientId = import.meta.env.VITE_FACEBOOK_CLIENT_ID || "your-facebook-client-id";
-    const redirectUri = `${window.location.origin}/auth/facebook/callback`;
-    const scope = "pages_manage_posts,pages_read_engagement";
-    const authUrl = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&response_type=code`;
-    window.open(authUrl, "_blank", "width=600,height=600");
+    // In demo mode, simulate successful connection
+    if (process.env.NODE_ENV === 'development') {
+      simulateConnection('facebook', 'Demo User');
+      return;
+    }
+    // Production: redirect to server-side OAuth
+    window.location.href = `/auth/facebook/connect`;
   };
 
   const connectTwitter = () => {
-    const clientId = import.meta.env.VITE_TWITTER_CLIENT_ID || "your-twitter-client-id";
-    const redirectUri = `${window.location.origin}/auth/twitter/callback`;
-    const scope = "tweet.read tweet.write users.read";
-    const authUrl = `https://twitter.com/i/oauth2/authorize?response_type=code&client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&state=state`;
-    window.open(authUrl, "_blank", "width=600,height=600");
+    // In demo mode, simulate successful connection
+    if (process.env.NODE_ENV === 'development') {
+      simulateConnection('twitter', '@demo_user');
+      return;
+    }
+    // Production: redirect to server-side OAuth
+    window.location.href = `/auth/twitter/connect`;
+  };
+
+  // Demo simulation function
+  const simulateConnection = async (platform: string, username: string) => {
+    try {
+      // Simulate API call to connect account
+      await apiRequest("POST", "/api/social-accounts/demo", {
+        platform,
+        username,
+        platformUserId: `demo_${platform}_user_${Date.now()}`,
+      });
+      
+      // Refresh social accounts data
+      queryClient.invalidateQueries({ queryKey: ["/api/social-accounts"] });
+      
+      toast({
+        title: `${platform.charAt(0).toUpperCase() + platform.slice(1)} connected!`,
+        description: `Demo account ${username} has been connected successfully.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Connection failed",
+        description: "Failed to connect demo account. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const prevStep = () => setStep(step - 1);

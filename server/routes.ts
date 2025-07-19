@@ -192,6 +192,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Demo route for simulating social account connections
+  app.post("/api/social-accounts/demo", authMiddleware, async (req, res) => {
+    try {
+      const { platform, username, platformUserId } = req.body;
+      
+      if (!platform || !username || !platformUserId) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+
+      // Create demo social account
+      const socialAccount = await storage.createSocialAccount({
+        userId: req.userId,
+        platform,
+        platformUserId,
+        username,
+        accessToken: `demo_token_${Date.now()}`,
+        refreshToken: null,
+        expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year from now
+      });
+
+      res.json({ socialAccount });
+    } catch (error) {
+      console.error("Create demo social account error:", error);
+      res.status(500).json({ message: "Failed to create demo social account" });
+    }
+  });
+
   // OAuth callback routes
   app.get("/auth/:platform/callback", async (req, res) => {
     try {

@@ -30,6 +30,7 @@ export interface IStorage {
   // Social Accounts
   getSocialAccounts(userId: number): Promise<SocialAccount[]>;
   getSocialAccount(userId: number, platform: string): Promise<SocialAccount | undefined>;
+  getSocialAccountById(id: number): Promise<SocialAccount | undefined>;
   createSocialAccount(account: InsertSocialAccount): Promise<SocialAccount>;
   updateSocialAccount(id: number, updates: Partial<SocialAccount>): Promise<SocialAccount | undefined>;
   deleteSocialAccount(id: number): Promise<boolean>;
@@ -154,6 +155,10 @@ export class MemStorage implements IStorage {
     return Array.from(this.socialAccounts.values()).find(
       account => account.userId === userId && account.platform === platform && account.isActive
     );
+  }
+
+  async getSocialAccountById(id: number): Promise<SocialAccount | undefined> {
+    return this.socialAccounts.get(id);
   }
 
   async createSocialAccount(insertAccount: InsertSocialAccount): Promise<SocialAccount> {
