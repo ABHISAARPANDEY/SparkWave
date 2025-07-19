@@ -385,7 +385,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Real Twitter OAuth with user's credentials
           const twitterClientId = process.env.TWITTER_CLIENT_ID;
           if (!twitterClientId) {
-            return res.status(400).json({ message: 'Twitter OAuth not configured' });
+            return res.status(400).json({ 
+              message: 'Twitter OAuth not configured. Please add TWITTER_CLIENT_ID and TWITTER_CLIENT_SECRET to your environment variables.',
+              setupRequired: true,
+              platform: 'twitter'
+            });
           }
           authUrl = `https://twitter.com/i/oauth2/authorize?response_type=code&client_id=${twitterClientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=tweet.read tweet.write users.read offline.access&state=${state}&code_challenge=challenge&code_challenge_method=plain`;
           break;

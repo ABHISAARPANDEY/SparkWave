@@ -234,13 +234,35 @@ export default function CreateCampaign() {
     window.location.href = `/auth/facebook/connect`;
   };
 
-  const connectTwitter = () => {
-    toast({
-      title: "Redirecting to Twitter/X",
-      description: "You'll be redirected to Twitter to authorize SparkWave.",
-    });
-    // Redirect to server-side OAuth initiation which will redirect to Twitter
-    window.location.href = `/auth/twitter/connect`;
+  const connectTwitter = async () => {
+    try {
+      // Check if OAuth is configured before redirecting
+      const response = await fetch('/auth/twitter/connect');
+      if (!response.ok) {
+        const errorData = await response.json();
+        if (errorData.setupRequired) {
+          toast({
+            title: "Twitter API Setup Required",
+            description: "Please add your Twitter API credentials to the environment variables first.",
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+      
+      toast({
+        title: "Redirecting to Twitter/X",
+        description: "You'll be redirected to Twitter to authorize SparkWave.",
+      });
+      // Redirect to server-side OAuth initiation which will redirect to Twitter
+      window.location.href = `/auth/twitter/connect`;
+    } catch (error) {
+      toast({
+        title: "Connection Error",
+        description: "Failed to connect to Twitter. Please check your setup.",
+        variant: "destructive",
+      });
+    }
   };
 
   const prevStep = () => setStep(step - 1);
@@ -451,9 +473,9 @@ export default function CreateCampaign() {
                               <div>
                                 <h4 className="font-semibold text-slate-900 flex items-center">
                                   Twitter/X 
-                                  <span className="ml-2 bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">LIVE</span>
+                                  <span className="ml-2 bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full">SETUP</span>
                                 </h4>
-                                <p className="text-sm text-slate-500">Real-time posting enabled</p>
+                                <p className="text-sm text-slate-500">Add API credentials to enable</p>
                               </div>
                             </div>
                             {availablePlatforms.some(p => p.platform === 'twitter') ? (
