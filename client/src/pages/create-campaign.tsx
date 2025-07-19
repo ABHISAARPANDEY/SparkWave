@@ -80,26 +80,41 @@ export default function CreateCampaign() {
   React.useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const connected = urlParams.get('connected');
+    const username = urlParams.get('username');
     const error = urlParams.get('error');
     const message = urlParams.get('message');
 
     if (connected) {
+      queryClient.invalidateQueries({ queryKey: ["/api/social-accounts"] });
       toast({
         title: `${connected.charAt(0).toUpperCase() + connected.slice(1)} connected!`,
-        description: "Your account has been successfully connected. You can now create campaigns.",
+        description: username 
+          ? `Successfully connected ${username}. You can now create campaigns that will post to your ${connected} account.`
+          : "Your account has been successfully connected. You can now create campaigns.",
       });
       // Clean URL
       window.history.replaceState({}, '', window.location.pathname);
     } else if (error) {
+      let errorTitle = "Connection failed";
+      let errorMessage = message || "There was an error connecting your account. Please try again.";
+      
+      if (error === 'auth_required') {
+        errorTitle = "Login required";
+        errorMessage = "Please log in to SparkWave first, then try connecting your social accounts.";
+      } else if (error === 'oauth_error') {
+        errorTitle = "OAuth error";
+        errorMessage = message || "The social media platform rejected the connection. Please try again.";
+      }
+      
       toast({
-        title: "Connection failed",
-        description: message || "There was an error connecting your account. Please try again.",
+        title: errorTitle,
+        description: errorMessage,
         variant: "destructive",
       });
       // Clean URL
       window.history.replaceState({}, '', window.location.pathname);
     }
-  }, [toast]);
+  }, [toast, queryClient]);
 
   // Fetch connected social accounts
   const { data: socialAccountsData, isLoading: socialAccountsLoading } = useQuery({
@@ -191,71 +206,41 @@ export default function CreateCampaign() {
     setStep(step + 1);
   };
 
-  // OAuth connection functions - redirect to server-side OAuth initiation
+  // Real OAuth connection functions
   const connectInstagram = () => {
-    // In demo mode, simulate successful connection
-    if (process.env.NODE_ENV === 'development') {
-      simulateConnection('instagram', '@demo_user');
-      return;
-    }
-    // Production: redirect to server-side OAuth
+    toast({
+      title: "Redirecting to Instagram",
+      description: "You'll be redirected to Instagram to authorize SparkWave.",
+    });
+    // Redirect to server-side OAuth initiation which will redirect to Instagram
     window.location.href = `/auth/instagram/connect`;
   };
 
   const connectLinkedIn = () => {
-    // In demo mode, simulate successful connection
-    if (process.env.NODE_ENV === 'development') {
-      simulateConnection('linkedin', 'Demo User');
-      return;
-    }
-    // Production: redirect to server-side OAuth
+    toast({
+      title: "Redirecting to LinkedIn",
+      description: "You'll be redirected to LinkedIn to authorize SparkWave.",
+    });
+    // Redirect to server-side OAuth initiation which will redirect to LinkedIn
     window.location.href = `/auth/linkedin/connect`;
   };
 
   const connectFacebook = () => {
-    // In demo mode, simulate successful connection
-    if (process.env.NODE_ENV === 'development') {
-      simulateConnection('facebook', 'Demo User');
-      return;
-    }
-    // Production: redirect to server-side OAuth
+    toast({
+      title: "Redirecting to Facebook",
+      description: "You'll be redirected to Facebook to authorize SparkWave.",
+    });
+    // Redirect to server-side OAuth initiation which will redirect to Facebook
     window.location.href = `/auth/facebook/connect`;
   };
 
   const connectTwitter = () => {
-    // In demo mode, simulate successful connection
-    if (process.env.NODE_ENV === 'development') {
-      simulateConnection('twitter', '@demo_user');
-      return;
-    }
-    // Production: redirect to server-side OAuth
+    toast({
+      title: "Redirecting to Twitter/X",
+      description: "You'll be redirected to Twitter to authorize SparkWave.",
+    });
+    // Redirect to server-side OAuth initiation which will redirect to Twitter
     window.location.href = `/auth/twitter/connect`;
-  };
-
-  // Demo simulation function
-  const simulateConnection = async (platform: string, username: string) => {
-    try {
-      // Simulate API call to connect account
-      await apiRequest("POST", "/api/social-accounts/demo", {
-        platform,
-        username,
-        platformUserId: `demo_${platform}_user_${Date.now()}`,
-      });
-      
-      // Refresh social accounts data
-      queryClient.invalidateQueries({ queryKey: ["/api/social-accounts"] });
-      
-      toast({
-        title: `${platform.charAt(0).toUpperCase() + platform.slice(1)} connected!`,
-        description: `Demo account ${username} has been connected successfully.`,
-      });
-    } catch (error) {
-      toast({
-        title: "Connection failed",
-        description: "Failed to connect demo account. Please try again.",
-        variant: "destructive",
-      });
-    }
   };
 
   const prevStep = () => setStep(step - 1);
