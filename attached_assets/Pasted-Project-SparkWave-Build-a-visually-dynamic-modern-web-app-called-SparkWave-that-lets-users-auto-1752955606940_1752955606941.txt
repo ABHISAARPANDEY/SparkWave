@@ -1,0 +1,66 @@
+Project: SparkWave
+
+Build a visually dynamic, modern web app called SparkWave that lets users automate and schedule AI-generated, daily text posts to social media platforms (Instagram, LinkedIn, Facebook, Twitter/X) from a single prompt. 
+
+**Tagline:** "Ignite Your Social. One Prompt. Days of Content."
+
+---
+
+**Key Technology & Hosting Details:**
+- For AI content generation: Integrate open-source/free AI text generation models available on GitHub. Use free-tier API keys or self-hosted endpoints at MVP stage (do not use paid commercial APIs like OpenAI until later).
+- For backend data: Use Supabase (free tier) for all user authentication, storage of user profiles, campaign prompts, generated posts, schedule metadata, and other database operations.
+- The app must be fully functional on these free resources, scalable to paid services later as MVP grows.
+
+---
+
+**Feature & Workflow Requirements:**
+
+1. **User Authentication**
+   - Secure sign-up/login via email and Google/LinkedIn SSO.
+   - Social account OAuth via standard, secure flows (store tokens in Supabase).
+   - All user, connection, and session data stored in Supabase.
+
+2. **Prompt-Driven Campaign Creation**
+   - User submits a single prompt or campaign theme (e.g., "Post creative AI quotes for 10 days").
+   - User selects which platforms to post on; sets campaign duration (# days), and preferred time for daily post.
+   - Generate unique, daily text posts (no repeats), tailored for each selected platform’s style/limit.
+   - For text generation, use a GitHub-hosted/free AI model, referencing examples such as GPT2, GPT-Neo, Llama.cpp, or similar with available API endpoints or open keys.
+
+3. **Scheduling & Publishing**
+   - Present AI-generated posts in a visual timeline or card stack for preview.
+   - Allow one-click approve/edit for each post.
+   - Automatically schedule/queue each post to publish daily at the set time, on all chosen platforms.
+   - Clearly show campaign status/progress, as well as any API/posting errors.
+   - For social publishing, use official or widely-used open-source APIs compatible with platform rules.
+
+4. **History & Analytics**
+   - Timeline/list view per campaign of scheduled and published posts.
+   - Basic delivery status and (if API allows) engagement metrics (likes/comments).
+
+5. **Onboarding & Delight**
+   - Step-by-step, friendly onboarding for first-time users.
+   - Built-in help/chatbot.
+   - Add micro-animations, bold color/upbeat UI, and fun campaign progress bars.
+   - Well-designed "empty" states and notifications.
+
+6. **Brand & UX**
+   - Bold, creative, mobile-first design—colorful accents, card-based layouts, custom icons.
+   - Roadmap/banner: "Coming Soon: Video & Image Automation!"
+   - Inspirational copy, not technical or bland.
+
+7. **Technical Stack**
+   - Frontend: React or Next.js (mobile responsive, Tailwind CSS or similar).
+   - Backend: Node.js or Python (async processing), scheduling, API hooks to GitHub-based AI models.
+   - Database & auth: Supabase (free tier) exclusively.
+   - All code modular and built for future extensibility (adding media posts, migrating AI providers, etc.).
+
+---
+
+**Special Instructions:**
+- Do NOT use any paid APIs/services for AI or DB in the MVP.
+- Clearly comment code with instructions on how to plug in free GitHub model endpoints and Supabase credentials.
+- Indicate in user onboarding that the platform uses open/free AI for the best early experience—and highlight an upgrade path for future (paid) reliability.
+- App must be ready for seamless transition to premium APIs or higher database tiers once user base grows.
+
+**Focus:** Deliver an MVP workflow that truly stands out for ease, delight, and creator empowerment, while running 100% on open-source and free-tier tools (GitHub AI and Supabase). Future media automation should be clearly "coming soon" both in UI and roadmap.
+
