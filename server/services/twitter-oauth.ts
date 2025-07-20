@@ -39,7 +39,7 @@ export async function exchangeTwitterCodeForToken(code: string, redirectUri: str
     body: new URLSearchParams({
       grant_type: 'authorization_code',
       code,
-      redirect_uri: redirectUri,
+      redirect_uri: 'http://localhost:3002/auth/twitter/callback',
       code_verifier: codeVerifier,
     }),
   });

@@ -28,14 +28,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Root endpoint for Railway health check
-  app.get("/", (req, res) => {
-    res.json({ 
-      status: "ok", 
-      message: "SparkWave API is running",
-      timestamp: new Date().toISOString(),
-      environment: process.env.NODE_ENV || 'development'
-    });
-  });
+  // app.get("/", (req, res) => {
+  //   res.json({ 
+  //     status: "ok", 
+  //     message: "SparkWave API is running",
+  //     timestamp: new Date().toISOString(),
+  //     environment: process.env.NODE_ENV || 'development'
+  //   });
+  // });
 
   // Test Twitter OAuth configuration
   app.get("/api/test-twitter-oauth", (req, res) => {
@@ -345,89 +345,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { platform } = req.params;
       const { code, state, error, error_description } = req.query;
-      
-      // Support both localhost and production URLs
       const baseUrl = process.env.NODE_ENV === 'production' 
         ? 'https://spark-wave-1-hakopog916.replit.app'
         : (req.headers.host ? `http://${req.headers.host}` : 'http://localhost:3002');
-
-      // Debug session state
-      console.log('OAuth Callback Debug:', {
-        sessionId: req.sessionID,
-        userId: req.session.userId,
-        state: state,
-        platform: platform,
-        baseUrl: baseUrl
-      });
-
+      console.log('[Twitter OAuth Callback] Params:', { code, state, error, error_description, platform });
+      console.log('[Twitter OAuth Callback] Session:', { sessionId: req.sessionID, userId: req.session.userId });
       if (error) {
-        console.error(`OAuth error for ${platform}:`, error, error_description);
-        return res.redirect(`${baseUrl}/create-campaign?error=oauth_error&message=${encodeURIComponent(error_description as string || error as string)}`);
+        console.error(`[Twitter OAuth Callback] OAuth error for ${platform}:`, error, error_description);
+        return res.redirect(`http://localhost:3002/create-campaign?error=oauth_error&message=${encodeURIComponent(error_description as string || error as string)}`);
       }
-
       if (!code) {
-        return res.redirect(`${baseUrl}/create-campaign?error=oauth_error&message=No authorization code received`);
+        console.error('[Twitter OAuth Callback] No authorization code received');
+        return res.redirect(`http://localhost:3002/create-campaign?error=oauth_error&message=No authorization code received`);
       }
-
-      // Validate state parameter and extract user ID
       let userId;
       try {
         if (state) {
           const stateData = JSON.parse(Buffer.from(state as string, 'base64').toString());
           userId = stateData.userId;
-          console.log('State data:', stateData);
+          console.log('[Twitter OAuth Callback] State data:', stateData);
         }
       } catch (e) {
-        console.warn('Invalid state parameter:', e);
+        console.warn('[Twitter OAuth Callback] Invalid state parameter:', e);
       }
-
-      // Fallback to session if state validation fails
       if (!userId) {
         userId = req.session.userId;
-        console.log('Using session userId:', userId);
+        console.log('[Twitter OAuth Callback] Using session userId:', userId);
       }
-
       if (!userId) {
-        console.log('No userId found, redirecting to login');
-        // For unauthenticated users, redirect to login with OAuth success info
-        // Store the OAuth success in session for after login
+        console.log('[Twitter OAuth Callback] No userId found, redirecting to login');
         (req.session as any).oauthSuccess = { platform, message: 'Please log in or register to complete the connection' };
-        
-        // Force session save before redirect
         req.session.save((err) => {
           if (err) {
-            console.error('Session save error:', err);
+            console.error('[Twitter OAuth Callback] Session save error:', err);
           }
-          return res.redirect(`${baseUrl}/auth?oauth_success=${platform}&message=Please log in or register to complete the connection`);
+          return res.redirect(`http://localhost:3002/auth?oauth_success=${platform}&message=Please log in or register to complete the connection`);
         });
         return;
       }
-
-      const serverUrl = process.env.NODE_ENV === 'production' 
-        ? 'https://spark-wave-1-hakopog916.replit.app'
-        : (req.headers.host ? `http://${req.headers.host}` : 'http://localhost:3002');
-      const redirectUri = `${serverUrl}/auth/${platform}/callback`;
-      
+      const redirectUri = 'http://localhost:3002/auth/twitter/callback';
       try {
-        console.log(`Processing OAuth callback for ${platform} with code: ${(code as string).substring(0, 10)}...`);
-        
-        // Use real OAuth for Twitter
+        console.log(`[Twitter OAuth Callback] Processing callback for ${platform} with code: ${(code as string).substring(0, 10)}...`);
         if (platform === 'twitter') {
           const { exchangeTwitterCodeForToken } = await import('./services/twitter-oauth.js');
-          
           try {
-            // Get the code verifier from the stored state
             const codeVerifier = codeVerifiers.get(state as string);
             if (!codeVerifier) {
+              console.error('[Twitter OAuth Callback] Code verifier not found for this OAuth request');
               throw new Error('Code verifier not found for this OAuth request');
             }
-            
             const tokenData = await exchangeTwitterCodeForToken(code as string, redirectUri, codeVerifier);
-            
-            // Clean up the stored code verifier
             codeVerifiers.delete(state as string);
-            
-            // Save the real Twitter connection
             await storage.createSocialAccount({
               userId,
               platform,
@@ -438,12 +406,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
               expiresAt: tokenData.expiresAt,
               isActive: true,
             });
-
-            console.log(`Successfully connected Twitter account ${tokenData.username} for user ${userId}`);
+            console.log(`[Twitter OAuth Callback] Successfully connected Twitter account ${tokenData.username} for user ${userId}`);
             res.redirect(`${baseUrl}/create-campaign?connected=${platform}&username=${encodeURIComponent(tokenData.username)}`);
             return;
           } catch (twitterError) {
-            console.error('Twitter OAuth error:', twitterError);
+            console.error('[Twitter OAuth Callback] Twitter OAuth error:', twitterError);
             res.redirect(`${baseUrl}/create-campaign?error=oauth_error&message=${encodeURIComponent('Failed to connect Twitter account')}`);
             return;
           }
@@ -459,11 +426,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
       } catch (tokenError) {
-        console.error(`OAuth token processing error for ${platform}:`, tokenError);
+        console.error(`[Twitter OAuth Callback] OAuth token processing error for ${platform}:`, tokenError);
         res.redirect(`${baseUrl}/create-campaign?error=oauth_error&message=${encodeURIComponent('Failed to process authentication')}`);
       }
     } catch (error) {
-      console.error("OAuth callback error:", error);
+      console.error('[Twitter OAuth Callback] General error:', error);
       const baseUrl = process.env.NODE_ENV === 'production' 
         ? 'https://spark-wave-1-hakopog916.replit.app'
         : (req.headers.host ? `http://${req.headers.host}` : 'http://localhost:3002');
@@ -519,45 +486,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { platform } = req.params;
       // Support both localhost and production URLs
-      const baseUrl = process.env.NODE_ENV === 'production' 
-        ? 'https://spark-wave-1-hakopog916.replit.app'
-        : (req.headers.host ? `http://${req.headers.host}` : 'http://localhost:3002');
-      const redirectUri = `${baseUrl}/auth/${platform}/callback`;
+      const redirectUri = 'http://localhost:3002/auth/twitter/callback';
       
       // Debug session state
       console.log('OAuth Connect Debug:', {
         sessionId: req.sessionID,
         userId: req.session.userId,
         platform: platform,
-        cookies: req.headers.cookie ? 'present' : 'missing'
+        cookies: req.headers.cookie ? 'present' : 'missing',
+        redirectUri,
+        env: process.env.NODE_ENV,
+        TWITTER_CLIENT_ID: process.env.TWITTER_CLIENT_ID,
+        TWITTER_CLIENT_SECRET: process.env.TWITTER_CLIENT_SECRET
       });
       
-      // Check if user is authenticated
+      // Require user to be authenticated before starting OAuth
       if (!req.session.userId) {
-        console.log('User not authenticated, storing pending OAuth');
-        
-        // TEMPORARY: Allow OAuth to proceed even without session for testing
-        // In production, this should redirect to login
-        console.log('Temporarily allowing OAuth without session for testing');
-        
-        // Store the intended OAuth platform in session
-        (req.session as any).pendingOAuth = platform;
-        
-        // Force session save before redirect
-        req.session.save((err) => {
-          if (err) {
-            console.error('Session save error:', err);
-          }
-          // For now, let's proceed with OAuth and handle session later
-          console.log('Proceeding with OAuth despite no session');
-        });
-        
-        // Don't return here - let the OAuth flow continue
+        console.log('User not authenticated, redirecting to login before OAuth');
+        return res.redirect(`http://localhost:3002/auth?oauth_error=login_required&message=Please log in before connecting your social account.`);
       }
       
       // Generate state parameter for security (store user ID if authenticated)
       const state = Buffer.from(JSON.stringify({ 
-        userId: req.userId || null, 
+        userId: req.session.userId, 
         timestamp: Date.now() 
       })).toString('base64');
       
@@ -582,38 +533,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Twitter OAuth with proper callback URL
           const twitterClientId = process.env.TWITTER_CLIENT_ID || 'dzY1dU9NcW9MWEVFa09FUmxtcGk6MTpjaQ';
           if (!twitterClientId) {
+            console.error('[Twitter OAuth] Missing TWITTER_CLIENT_ID');
             return res.status(400).json({ message: 'Twitter OAuth not configured' });
           }
-          
-          // Ensure callback URL matches what's registered in Twitter app
-          const exactRedirectUri = `${baseUrl}/auth/twitter/callback`;
-          console.log(`Twitter OAuth redirect URI: ${exactRedirectUri}`);
-          
-          // Check if we can reach Twitter OAuth or if there's a config issue
-          console.log(`Attempting Twitter OAuth with Client ID: ${twitterClientId.substring(0, 10)}...`);
-          console.log(`Redirect URI: ${exactRedirectUri}`);
-          
+          // Hardcoded callback URL
+          const exactRedirectUri = 'http://localhost:3002/auth/twitter/callback';
+          console.log(`[Twitter OAuth] OAuth URL construction:`, {
+            twitterClientId,
+            exactRedirectUri,
+            state,
+            scope: 'tweet.read tweet.write users.read',
+          });
           // Generate PKCE challenge and verifier
           const { challenge, verifier } = generateCodeChallenge();
-          
           // Store the code verifier with the state as key
           codeVerifiers.set(state, verifier);
-          
           // Use real Twitter OAuth URL
           authUrl = `https://twitter.com/i/oauth2/authorize?response_type=code&client_id=${twitterClientId}&redirect_uri=${encodeURIComponent(exactRedirectUri)}&scope=tweet.read%20tweet.write%20users.read&state=${state}&code_challenge=${challenge}&code_challenge_method=S256`;
+          console.log(`[Twitter OAuth] Final authUrl: ${authUrl}`);
           break;
         default:
           return res.status(400).json({ message: 'Unsupported platform' });
       }
       
-      // Only redirect to OAuth if we have a valid authUrl (not for Twitter which uses mock)
+      // Only redirect to OAuth if we have a valid authUrl
       if (authUrl) {
-        console.log(`Redirecting user ${req.userId} to ${platform} OAuth: ${authUrl}`);
+        console.log(`[Twitter OAuth] Redirecting user ${req.session.userId} to: ${authUrl}`);
         res.redirect(authUrl);
       }
     } catch (error) {
       console.error("OAuth initiate error:", error);
-      res.status(500).json({ message: "Failed to initiate OAuth" });
+      res.status(500).json({ message: "Failed to initiate OAuth", error: error instanceof Error ? error.message : error });
     }
   });
 
