@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
+import MemoryStore from "memorystore";
 import cors from "cors";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
@@ -11,7 +12,15 @@ const app = express();
 // CORS configuration for production
 const corsOptions = {
   origin: process.env.NODE_ENV === 'production' 
-    ? ['https://spark-wave-1-hakopog916.replit.app', 'http://localhost:3002', 'http://localhost:5173']
+    ? [
+        'https://spark-wave-1-hakopog916.replit.app', 
+        'http://localhost:3002', 
+        'http://localhost:5173',
+        process.env.FRONTEND_URL || 'http://localhost:3000',
+        /\.railway\.app$/, // Allow all Railway subdomains
+        /\.vercel\.app$/,  // Allow all Vercel subdomains
+        /\.netlify\.app$/  // Allow all Netlify subdomains
+      ]
     : ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:3002'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -20,16 +29,21 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-// Session configuration
+// Session configuration with proper store
+const SessionStore = MemoryStore(session);
 app.use(session({
   secret: process.env.SESSION_SECRET || 'sparkwave-secret-key-change-in-production',
   resave: true,
   saveUninitialized: true,
+  store: new SessionStore({
+    checkPeriod: 86400000, // prune expired entries every 24h
+    ttl: 24 * 60 * 60 * 1000 // 24 hours
+  }),
   cookie: {
-    secure: false, // Set to false for Replit compatibility
+    secure: process.env.NODE_ENV === 'production', // Secure cookies in production
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    sameSite: 'lax' // Use lax for better compatibility
+    sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax' // Strict in production
   },
   name: 'sparkwave-session' // Custom session name
 }));

@@ -28,7 +28,7 @@ const AI_MODELS: AIModelConfig[] = [
 class AIContentGenerator {
   async callA4FAI(model: AIModelConfig, prompt: string): Promise<string> {
     try {
-      const a4fApiKey = process.env.A4F_API_KEY || 'ddc-a4f-c4646ced53b34fdfa60084c2a56680ac';
+      const a4fApiKey = process.env.A4F_API_KEY;
       
       if (!a4fApiKey) {
         console.warn("A4F_API_KEY not found, using enhanced fallback generation");
@@ -41,7 +41,9 @@ class AIContentGenerator {
       
     } catch (error) {
       console.error("A4F AI call failed:", error);
-      throw error;
+      // Use fallback content generation instead of throwing
+      console.log("Using fallback content generation due to AI API error");
+      return this.generateFallbackContent(prompt, "twitter", "casual", 1);
     }
   }
 
@@ -61,7 +63,7 @@ class AIContentGenerator {
           messages: [
             {
               role: 'system',
-              content: 'You are an expert social media content creator. Create detailed, engaging posts that provide real value to readers. Write comprehensive content with multiple points, tips, or insights. Use emojis, formatting, and hashtags to make posts more engaging. Focus on the specific topic and campaign title provided.'
+              content: 'You are an expert social media content creator. Your task is to create engaging, original posts about the given topic. Write content that provides real value to readers with multiple points, tips, or insights. Use emojis, formatting, and hashtags to make posts more engaging. Focus on the specific topic provided and create content that would be valuable to your audience. IMPORTANT: Write ONLY the social media post content. Do NOT include any instructions, requirements, meta-text, or the original prompt in your response. Just write the actual post that would appear on social media.'
             },
             {
               role: 'user',
@@ -84,7 +86,7 @@ class AIContentGenerator {
       
       if (content) {
         console.log('Generated content from A4F AI:', content.substring(0, 50) + '...');
-        return content.trim();
+        return this.cleanGeneratedContent(content, prompt);
       } else {
         throw new Error('No content generated from A4F AI');
       }
@@ -96,6 +98,35 @@ class AIContentGenerator {
       console.log('Using fallback content generation:', enhancedContent.substring(0, 50) + '...');
       return enhancedContent;
     }
+  }
+
+  cleanGeneratedContent(content: string, originalPrompt: string): string {
+    let cleaned = content.trim();
+    
+    // Remove any prompt text that might be included
+    const promptLines = originalPrompt.split('\n').map(line => line.trim());
+    for (const line of promptLines) {
+      if (line && line.length > 10 && cleaned.includes(line)) {
+        cleaned = cleaned.replace(line, '').trim();
+      }
+    }
+    
+    // Remove common AI artifacts and instructions
+    cleaned = cleaned.replace(/^(Post content:|Content:|Generated:|AI:|Bot:|Response:)/, '').trim();
+    cleaned = cleaned.replace(/^(Generate a|Create a|Write a|Here's a|Here is a)/, '').trim();
+    cleaned = cleaned.replace(/artificial intelligence|AI technology|AI tools|AI-powered/g, '').trim();
+    cleaned = cleaned.replace(/daily Ai tips/g, 'daily fitness tips').trim();
+    
+    // Remove any remaining instruction-like text
+    cleaned = cleaned.replace(/^(Requirements:|Instructions:|Task:|Create an amazing|Create a detailed)/, '').trim();
+    
+    // Remove any text that looks like it's describing what to do rather than doing it
+    cleaned = cleaned.replace(/^(I'll create|I will create|Let me create|This post will)/, '').trim();
+    
+    // Clean up multiple spaces and line breaks
+    cleaned = cleaned.replace(/\s+/g, ' ').trim();
+    
+    return cleaned;
   }
 
   private async analyzeContentIntent(prompt: string): Promise<{
@@ -155,24 +186,82 @@ class AIContentGenerator {
   }
 
   generateFallbackContent(prompt: string, platform: string, style: string, dayNumber: number): string {
+    // Create topic-specific content based on the prompt
+    const topicLower = prompt.toLowerCase();
+    
+    // Yoga-specific content
+    if (topicLower.includes('yoga') || topicLower.includes('fitness') || topicLower.includes('wellness')) {
+      const yogaTemplates = {
+        professional: [
+          `🧘‍♀️ Professional wellness tip: ${prompt} isn't just about physical flexibility—it's about mental resilience too. Research shows regular practice improves focus, reduces stress, and enhances productivity by 23%. Perfect for busy professionals! #wellness #productivity`,
+          `💼 Executive wellness: ${prompt} offers proven benefits for leadership performance. Studies indicate improved decision-making, emotional intelligence, and team collaboration. Essential for modern business success. #leadership #wellness`,
+        ],
+        inspirational: [
+          `✨ Transform your life through ${prompt}! Every pose is a metaphor for life—finding balance, staying grounded, and growing stronger. Your journey to wellness starts with a single breath. #transformation #wellness`,
+          `🌟 Daily inspiration: ${prompt} teaches us that flexibility isn't just physical—it's mental and emotional too. Embrace the journey, trust the process, and watch yourself evolve. #growth #mindfulness`,
+        ],
+        casual: [
+          `Hey wellness warriors! 👋 Just finished my ${prompt} session and feeling amazing! Anyone else find that it completely changes your mood? The mind-body connection is real! #wellness #community`,
+          `Coffee + ${prompt} = perfect morning! ☕️ Anyone else start their day with some mindful movement? It's incredible how it sets the tone for everything else. #morningroutine #wellness`,
+        ],
+      };
+      const styleTemplates = yogaTemplates[style as keyof typeof yogaTemplates] || yogaTemplates.casual;
+      return styleTemplates[Math.floor(Math.random() * styleTemplates.length)];
+    }
+    
+    // Business/Professional content
+    if (topicLower.includes('business') || topicLower.includes('strategy') || topicLower.includes('growth')) {
+      const businessTemplates = {
+        professional: [
+          `💼 Strategic insight: ${prompt} represents a fundamental shift in how we approach modern business challenges. Data shows companies embracing this approach see 40% higher growth rates. #strategy #growth`,
+          `📊 Industry analysis: ${prompt} is reshaping competitive landscapes. Key insights for leaders: focus on innovation, prioritize customer experience, and build resilient systems. #leadership #innovation`,
+        ],
+        inspirational: [
+          `🚀 Transform your business with ${prompt}! Every successful company started with a vision and the courage to pursue it. Your breakthrough moment is coming. #entrepreneurship #success`,
+          `✨ Business inspiration: ${prompt} reminds us that innovation isn't about perfection—it's about progress. Keep iterating, keep learning, keep growing. #innovation #growth`,
+        ],
+        casual: [
+          `Hey entrepreneurs! 👋 Been thinking about ${prompt} lately. Anyone else see this as a game-changer for small businesses? The possibilities are endless! #entrepreneurship #community`,
+          `Coffee chat: ${prompt} ☕️ What's your take on this trend? Seems like everyone's talking about it, but what's the real impact? #business #discussion`,
+        ],
+      };
+      const styleTemplates = businessTemplates[style as keyof typeof businessTemplates] || businessTemplates.casual;
+      return styleTemplates[Math.floor(Math.random() * styleTemplates.length)];
+    }
+    
+    // Technology content
+    if (topicLower.includes('tech') || topicLower.includes('innovation') || topicLower.includes('digital')) {
+      const techTemplates = {
+        professional: [
+          `🔧 Tech insight: ${prompt} is revolutionizing how we work and live. Early adopters are seeing 3x productivity gains. The future is here—are you ready? #technology #innovation`,
+          `💻 Digital transformation: ${prompt} represents the next evolution in technology adoption. Key success factors: user experience, scalability, and security. #digital #transformation`,
+        ],
+        inspirational: [
+          `🚀 Tech inspiration: ${prompt} shows us that the future belongs to those who embrace change. Every innovation started as an idea. What's your next breakthrough? #innovation #future`,
+          `✨ Digital dreams: ${prompt} proves that technology can solve real human problems. Your ideas have the power to change the world. #technology #impact`,
+        ],
+        casual: [
+          `Hey tech enthusiasts! 👋 Just discovered ${prompt} and it's mind-blowing! Anyone else excited about where this is going? The possibilities are endless! #technology #excitement`,
+          `Tech talk: ${prompt} ☕️ What's your experience with this? Seems like it's everywhere now. Love to hear your thoughts! #tech #community`,
+        ],
+      };
+      const styleTemplates = techTemplates[style as keyof typeof techTemplates] || techTemplates.casual;
+      return styleTemplates[Math.floor(Math.random() * styleTemplates.length)];
+    }
+    
+    // Default templates for other topics
     const templates = {
       professional: [
-        `💼 Day ${dayNumber}: ${prompt} - Here's a comprehensive professional perspective on this crucial topic for industry leaders. Key strategies every expert should consider and implement for maximum impact.`,
-        `🎯 Professional insight #${dayNumber}: ${prompt}. Data-driven insights and best practices that drive sustainable growth and competitive advantage in today's dynamic market.`,
-        `📊 Industry analysis - Day ${dayNumber}: ${prompt}. Strategic frameworks and actionable insights for business excellence and operational optimization.`,
-        `🚀 Strategic focus for Day ${dayNumber}: ${prompt}. Proven methodologies and innovative approaches that industry pioneers use to achieve breakthrough results.`,
+        `💼 Professional insight: ${prompt} offers valuable lessons for industry leaders. Key strategies and best practices that drive sustainable success in today's competitive landscape. #professional #growth`,
+        `📊 Strategic analysis: ${prompt} demonstrates the importance of adaptive thinking and innovative approaches. Essential insights for business excellence. #strategy #excellence`,
       ],
       inspirational: [
-        `✨ Day ${dayNumber} inspiration: ${prompt} - Remember, every master was once a disaster! Your journey matters, your efforts count, and your dreams are absolutely achievable. Keep pushing forward!`,
-        `🌟 Daily motivation #${dayNumber}: ${prompt}. Your potential is limitless! Every challenge is an opportunity to grow stronger and wiser. Believe in yourself!`,
-        `💪 Inspiration for Day ${dayNumber}: ${prompt} - Every step forward counts, no matter how small. Progress over perfection. You're building something amazing!`,
-        `🎉 Day ${dayNumber} reminder: ${prompt}. You're capable of amazing things! Trust the process, stay consistent, and watch yourself transform.`,
+        `✨ Daily inspiration: ${prompt} reminds us that every challenge is an opportunity to grow. Your potential is limitless—keep pushing forward! #inspiration #growth`,
+        `🌟 Transform your perspective: ${prompt} teaches us that progress over perfection leads to lasting success. Believe in your journey! #transformation #success`,
       ],
       casual: [
-        `Hey everyone! 👋 Day ${dayNumber} thoughts on ${prompt}... been reflecting on this a lot lately and wanted to share my perspective. What's your take on this topic?`,
-        `Day ${dayNumber} coffee chat: ${prompt} ☕ Love to hear everyone's perspective on this! It's fascinating how different people approach this topic.`,
-        `Just thinking about ${prompt} today (Day ${dayNumber})... anyone else feeling the same way? Would love to hear your thoughts and experiences! 🤔`,
-        `Day ${dayNumber} casual convo: ${prompt} - drop your thoughts below! Always interesting to see different perspectives on this topic. 💭`,
+        `Hey everyone! 👋 Been thinking about ${prompt} lately. Anyone else find this topic fascinating? Love to hear your thoughts and experiences! #community #discussion`,
+        `Coffee chat: ${prompt} ☕️ What's your take on this? Always interesting to see different perspectives on important topics. #conversation #insights`,
       ],
     };
 
@@ -186,7 +275,7 @@ class AIContentGenerator {
     let optimized = content.trim();
     
     // Remove any AI artifacts
-    optimized = optimized.replace(/^(AI:|Bot:|Response:|Post:)/i, "").trim();
+    optimized = optimized.replace(/^(AI:|Bot:|Response:|Post:)/, "").trim();
     
     switch (platform.toLowerCase()) {
       case "twitter":
@@ -415,64 +504,46 @@ export async function generateAndPostInstantly(campaign: Campaign): Promise<void
         console.log(`\n📝 Generating instant content for ${platform}...`);
         
         // Create prompt for instant posting
-        const promptText = `Create an amazing, detailed ${campaign.contentStyle} social media post about "${campaign.prompt}".
+        const promptText = `You are a social media expert. Create an engaging ${campaign.contentStyle} post about ${campaign.prompt}.
 
-Use the campaign title "${campaign.title}" and theme "${campaign.prompt}" to create a comprehensive, engaging post.
-
-Requirements:
-- Write a full, detailed post (not just one line)
-- Include multiple points, tips, or insights
-- Make it engaging and valuable for readers
-- Use appropriate emojis and formatting
-- Include relevant hashtags
-- Keep it under 280 characters for Twitter
-- Focus on the specific topic provided
-
-Style: ${campaign.contentStyle}
-Campaign Title: ${campaign.title}
 Topic: ${campaign.prompt}
+Style: ${campaign.contentStyle}
 Platform: ${platform}
 
-Create an amazing, detailed post now:`;
+Write ONLY the social media post content. Do not include any instructions, requirements, or meta-text. Just write the actual post that would appear on ${platform}.`;
         
         console.log(`🤖 AI Prompt: ${promptText.substring(0, 100)}...`);
         
         let content: string;
         
         try {
-                      // Try A4F AI generation first
-            console.log(`🔑 Using A4F AI with key: ddc-a4f-c4646ced53b34fdfa60084c2a56680ac`);
-                      const aiResponse = await aiGenerator.callA4FAI(AI_MODELS[0], promptText);
+          // Try A4F AI generation first
+          console.log(`🔑 Using A4F AI with environment key`);
+          const aiResponse = await aiGenerator.callA4FAI(AI_MODELS[0], promptText);
           content = aiResponse.trim();
           
-          // Clean up the response - remove any prompt text that might be included
-          const promptLines = promptText.split('\n').map(line => line.trim());
-          for (const line of promptLines) {
-            if (line && content.includes(line)) {
-              content = content.replace(line, '').trim();
-            }
-          }
-          
-          // Remove common AI artifacts
-          content = content.replace(/^(Post content:|Content:|Generated:|AI:|Bot:)/i, '').trim();
-          content = content.replace(/^(Generate a|Create a|Write a)/i, '').trim();
-          content = content.replace(/artificial intelligence|AI technology|AI tools|AI-powered/gi, '').trim();
-          content = content.replace(/daily Ai tips/gi, 'daily fitness tips').trim();
+          // Clean up the response using the improved cleaning method
+          content = aiGenerator.cleanGeneratedContent(content, promptText);
           
           if (!content || content.length < 10) {
             throw new Error("Generated content too short");
           }
           
           // Validate that content is relevant to the topic
-          const topicKeywords = campaign.prompt.toLowerCase().split(' ');
+          const topicKeywords = campaign.prompt.toLowerCase().split(' ').filter(word => word.length > 3);
           const contentLower = content.toLowerCase();
-          const isRelevant = topicKeywords.some(keyword => 
-            keyword.length > 3 && contentLower.includes(keyword)
-          );
+          const isRelevant = topicKeywords.some(keyword => contentLower.includes(keyword));
           
-          if (!isRelevant) {
-            console.warn('Generated content may not be relevant to topic, using fallback');
-            throw new Error("Generated content not relevant to topic");
+          // Also check if content contains instruction-like text that shouldn't be there
+          const hasInstructions = contentLower.includes('create a') || 
+                                 contentLower.includes('write a') || 
+                                 contentLower.includes('generate a') ||
+                                 contentLower.includes('requirements:') ||
+                                 contentLower.includes('instructions:');
+          
+          if (!isRelevant || hasInstructions) {
+            console.warn('Generated content may not be relevant or contains instructions, using fallback');
+            throw new Error("Generated content not relevant or contains instructions");
           }
           
           console.log(`✅ AI generated content: ${content.substring(0, 50)}...`);

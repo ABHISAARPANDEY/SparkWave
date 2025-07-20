@@ -27,6 +27,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
   });
 
+  // Root endpoint for Railway health check
+  app.get("/", (req, res) => {
+    res.json({ 
+      status: "ok", 
+      message: "SparkWave API is running",
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV || 'development'
+    });
+  });
+
   // Test Twitter OAuth configuration
   app.get("/api/test-twitter-oauth", (req, res) => {
     const twitterClientId = process.env.TWITTER_CLIENT_ID || 'dzY1dU9NcW9MWEVFa09FUmxtcGk6MTpjaQ';
