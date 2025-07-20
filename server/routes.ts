@@ -157,6 +157,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const tokenData = await exchangeCodeForToken(platform, code, redirectUri);
       
       // Check if account is already connected
+      if (!req.userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
       const existingAccount = await storage.getSocialAccount(req.userId, platform);
       if (existingAccount) {
         // Update existing account
@@ -171,7 +174,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Create new social account
       const socialAccount = await storage.createSocialAccount({
-        userId: req.userId,
+        userId: req.userId!,
         platform,
         platformUserId: tokenData.userId,
         username: tokenData.username,
@@ -189,6 +192,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/social-accounts", authMiddleware, async (req, res) => {
     try {
+      if (!req.userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
       const accounts = await storage.getSocialAccounts(req.userId);
       res.json({ accounts });
     } catch (error) {
@@ -207,6 +213,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Verify ownership
+      if (!req.userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
       const account = await storage.getSocialAccount(req.userId, "");
       if (!account || account.id !== accountId) {
         return res.status(404).json({ message: "Social account not found" });
@@ -236,7 +245,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Create demo social account
       const socialAccount = await storage.createSocialAccount({
-        userId: req.userId,
+        userId: req.userId!,
         platform,
         platformUserId,
         username,
@@ -338,9 +347,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const mockConnection = await createMockSocialConnection(platform, userId);
         
         if (mockConnection.success) {
-          res.redirect(`${baseUrl}/create-campaign?connected=${platform}&username=${encodeURIComponent(mockConnection.username)}`);
+          res.redirect(`${baseUrl}/create-campaign?connected=${platform}&username=${encodeURIComponent(mockConnection.username || '')}`);
         } else {
-          res.redirect(`${baseUrl}/create-campaign?error=connection_failed&message=${encodeURIComponent(mockConnection.error)}`);
+          res.redirect(`${baseUrl}/create-campaign?error=connection_failed&message=${encodeURIComponent(mockConnection.error || '')}`);
         }
         
       } catch (tokenError) {
@@ -469,6 +478,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Campaign routes with rate limiting
   app.get("/api/campaigns", authMiddleware, async (req, res) => {
     try {
+      if (!req.userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
       const campaigns = await storage.getCampaigns(req.userId);
       res.json({ campaigns });
     } catch (error) {
@@ -689,6 +701,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Analytics routes
   app.get("/api/analytics/dashboard", authMiddleware, async (req, res) => {
     try {
+      if (!req.userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
       const campaigns = await storage.getCampaigns(req.userId);
       const allPosts = [];
       
