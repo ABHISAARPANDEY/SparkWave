@@ -8,12 +8,45 @@ import { schedulePost } from "./services/scheduler";
 import { exchangeCodeForToken } from "./services/oauth-service";
 import { validateToken, refreshToken } from "./services/social-auth";
 import bcrypt from "bcrypt";
+import crypto from "crypto";
 import "./types";
 
+// Generate PKCE code challenge for OAuth 2.0
+function generateCodeChallenge(): { challenge: string; verifier: string } {
+  const codeVerifier = crypto.randomBytes(32).toString('base64url');
+  const codeChallenge = crypto.createHash('sha256').update(codeVerifier).digest('base64url');
+  return { challenge: codeChallenge, verifier: codeVerifier };
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
+  // In-memory store for PKCE code verifiers (in production, use Redis or database)
+  const codeVerifiers = new Map<string, string>();
+  
   // Health check
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
+  });
+
+  // Test Twitter OAuth configuration
+  app.get("/api/test-twitter-oauth", (req, res) => {
+    const twitterClientId = process.env.TWITTER_CLIENT_ID || 'dzY1dU9NcW9MWEVFa09FUmxtcGk6MTpjaQ';
+    const twitterClientSecret = process.env.TWITTER_CLIENT_SECRET || 't0ZhzEjOeXVV8s7Z60alx0_6WsmIUUc0yzszNkm2RCQ0Wu4Flx';
+    
+    if (!twitterClientId || !twitterClientSecret) {
+      return res.status(400).json({ 
+        message: 'Twitter OAuth not configured',
+        configured: false,
+        clientId: twitterClientId ? 'Set' : 'Not set',
+        clientSecret: twitterClientSecret ? 'Set' : 'Not set'
+      });
+    }
+    
+    res.json({ 
+      message: 'Twitter OAuth is configured',
+      configured: true,
+      clientId: twitterClientId.substring(0, 10) + '...',
+      clientSecret: twitterClientSecret.substring(0, 10) + '...'
+    });
   });
 
   // Auth routes
@@ -225,7 +258,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { platform } = req.params;
       const { code, state, error, error_description } = req.query;
       
-      const baseUrl = process.env.REPL_URL || process.env.CLIENT_URL || 'http://localhost:5000';
+      const baseUrl = 'http://localhost:3002';
 
       if (error) {
         console.error(`OAuth error for ${platform}:`, error, error_description);
@@ -253,57 +286,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       if (!userId) {
-        return res.redirect(`${baseUrl}/auth?error=auth_required&message=Please log in first`);
+        // For unauthenticated users, redirect to login with OAuth success info
+        return res.redirect(`${baseUrl}/auth?oauth_success=${platform}&message=Please log in or register to complete the connection`);
       }
 
-      const serverUrl = process.env.REPL_URL || process.env.SERVER_URL || 'http://localhost:5000';
+      const serverUrl = 'http://localhost:3002';
       const redirectUri = `${serverUrl}/auth/${platform}/callback`;
       
       try {
         console.log(`Processing OAuth callback for ${platform} with code: ${(code as string).substring(0, 10)}...`);
         
-        // Use real OAuth for Twitter when SparkWave app is registered
+        // Use real OAuth for Twitter
         if (platform === 'twitter') {
-          // If we have real Twitter credentials, use the live API
-          if (process.env.TWITTER_CLIENT_ID && process.env.TWITTER_CLIENT_SECRET) {
-            const { exchangeTwitterCodeForToken } = await import('./services/twitter-oauth.js');
+          const { exchangeTwitterCodeForToken } = await import('./services/twitter-oauth.js');
+          
+          try {
+            // Get the code verifier from the stored state
+            const codeVerifier = codeVerifiers.get(state as string);
+            if (!codeVerifier) {
+              throw new Error('Code verifier not found for this OAuth request');
+            }
             
-            try {
-              const tokenData = await exchangeTwitterCodeForToken(code as string, redirectUri);
-              
-              // Save the real Twitter connection
-              await storage.createSocialAccount({
-                userId,
-                platform,
-                platformUserId: tokenData.userId,
-                username: tokenData.username,
-                accessToken: tokenData.accessToken,
-                refreshToken: tokenData.refreshToken || null,
-                expiresAt: tokenData.expiresAt,
-                isActive: true,
-              });
+            const tokenData = await exchangeTwitterCodeForToken(code as string, redirectUri, codeVerifier);
+            
+            // Clean up the stored code verifier
+            codeVerifiers.delete(state as string);
+            
+            // Save the real Twitter connection
+            await storage.createSocialAccount({
+              userId,
+              platform,
+              platformUserId: tokenData.userId,
+              username: tokenData.username,
+              accessToken: tokenData.accessToken,
+              refreshToken: tokenData.refreshToken || null,
+              expiresAt: tokenData.expiresAt,
+              isActive: true,
+            });
 
-              console.log(`Successfully connected Twitter account ${tokenData.username} for user ${userId}`);
-              res.redirect(`${baseUrl}/create-campaign?connected=${platform}&username=${encodeURIComponent(tokenData.username)}`);
-              return;
-            } catch (twitterError) {
-              console.error('Twitter OAuth error:', twitterError);
-              res.redirect(`${baseUrl}/create-campaign?error=oauth_error&message=${encodeURIComponent('Failed to connect Twitter account')}`);
-              return;
-            }
-          } else {
-            // Simulate successful Twitter connection for demo
-            console.log(`Creating demo Twitter connection for user ${userId} with code: ${(code as string).substring(0, 10)}...`);
-            
-            const mockConnection = await createMockSocialConnection(platform, userId);
-            
-            if (mockConnection.success) {
-              res.redirect(`${baseUrl}/create-campaign?connected=${platform}&username=${encodeURIComponent(mockConnection.username)}`);
-              return;
-            } else {
-              res.redirect(`${baseUrl}/create-campaign?error=connection_failed&message=${encodeURIComponent(mockConnection.error)}`);
-              return;
-            }
+            console.log(`Successfully connected Twitter account ${tokenData.username} for user ${userId}`);
+            res.redirect(`${baseUrl}/create-campaign?connected=${platform}&username=${encodeURIComponent(tokenData.username)}`);
+            return;
+          } catch (twitterError) {
+            console.error('Twitter OAuth error:', twitterError);
+            res.redirect(`${baseUrl}/create-campaign?error=oauth_error&message=${encodeURIComponent('Failed to connect Twitter account')}`);
+            return;
           }
         }
         
@@ -322,7 +349,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     } catch (error) {
       console.error("OAuth callback error:", error);
-      const baseUrl = process.env.REPL_URL || process.env.CLIENT_URL || 'http://localhost:5000';
+      const baseUrl = 'http://localhost:3002';
       res.redirect(`${baseUrl}/create-campaign?error=oauth_error&message=Authentication failed`);
     }
   });
@@ -371,14 +398,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   // OAuth initiate routes - works with SparkWave's registered OAuth apps
-  app.get("/auth/:platform/connect", authMiddleware, async (req, res) => {
+  app.get("/auth/:platform/connect", async (req, res) => {
     try {
       const { platform } = req.params;
-      const baseUrl = process.env.REPL_URL || process.env.SERVER_URL || 'https://sparkwave.replit.app';
+      const baseUrl = 'http://localhost:3002';
       const redirectUri = `${baseUrl}/auth/${platform}/callback`;
       
-      // Generate state parameter for security (store user ID)
-      const state = Buffer.from(JSON.stringify({ userId: req.userId, timestamp: Date.now() })).toString('base64');
+      // Generate state parameter for security (store user ID if authenticated)
+      const state = Buffer.from(JSON.stringify({ 
+        userId: req.userId || null, 
+        timestamp: Date.now() 
+      })).toString('base64');
       
       let authUrl = '';
       switch (platform) {
@@ -399,7 +429,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           break;
         case 'twitter':
           // Twitter OAuth with proper callback URL
-          const twitterClientId = process.env.TWITTER_CLIENT_ID;
+          const twitterClientId = process.env.TWITTER_CLIENT_ID || 'dzY1dU9NcW9MWEVFa09FUmxtcGk6MTpjaQ';
           if (!twitterClientId) {
             return res.status(400).json({ message: 'Twitter OAuth not configured' });
           }
@@ -412,51 +442,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log(`Attempting Twitter OAuth with Client ID: ${twitterClientId.substring(0, 10)}...`);
           console.log(`Redirect URI: ${exactRedirectUri}`);
           
-          // For now, create a simulation page that shows the OAuth flow
-          authUrl = `data:text/html,<!DOCTYPE html>
-<html>
-<head>
-    <title>Twitter OAuth - SparkWave</title>
-    <style>
-        body { font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; }
-        .oauth-box { border: 2px solid #1DA1F2; border-radius: 12px; padding: 30px; background: #f8f9fa; }
-        .twitter-logo { color: #1DA1F2; font-size: 24px; font-weight: bold; }
-        .btn { background: #1DA1F2; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; text-decoration: none; display: inline-block; margin: 10px 0; }
-        .config-note { background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 8px; margin: 20px 0; }
-        .success-btn { background: #28a745; }
-    </style>
-</head>
-<body>
-    <div class="oauth-box">
-        <h2 class="twitter-logo">🐦 Twitter OAuth - SparkWave</h2>
-        <p>In a production environment, this would redirect to Twitter's OAuth page:</p>
-        <code style="background: #e9ecef; padding: 10px; display: block; margin: 15px 0; border-radius: 4px;">
-            https://twitter.com/i/oauth2/authorize?response_type=code&client_id=${twitterClientId}&redirect_uri=${encodeURIComponent(exactRedirectUri)}&scope=tweet.read%20tweet.write%20users.read&state=${state}
-        </code>
-        
-        <div class="config-note">
-            <strong>Configuration Issue:</strong> The callback URL in your Twitter app must be set to:<br>
-            <code>${exactRedirectUri}</code>
-        </div>
-        
-        <p>For demonstration purposes, click below to simulate successful authorization:</p>
-        <a href="${exactRedirectUri}?code=demo_success_${Date.now()}&state=${state}" class="btn success-btn">
-            ✅ Simulate Successful Twitter Authorization
-        </a>
-        
-        <p style="margin-top: 20px; font-size: 14px; color: #666;">
-            Once the Twitter app callback URL is configured correctly, this will redirect to the real Twitter OAuth page.
-        </p>
-    </div>
-</body>
-</html>`;
+          // Generate PKCE challenge and verifier
+          const { challenge, verifier } = generateCodeChallenge();
+          
+          // Store the code verifier with the state as key
+          codeVerifiers.set(state, verifier);
+          
+          // Use real Twitter OAuth URL
+          authUrl = `https://twitter.com/i/oauth2/authorize?response_type=code&client_id=${twitterClientId}&redirect_uri=${encodeURIComponent(exactRedirectUri)}&scope=tweet.read%20tweet.write%20users.read&state=${state}&code_challenge=${challenge}&code_challenge_method=S256`;
           break;
         default:
           return res.status(400).json({ message: 'Unsupported platform' });
       }
       
-      console.log(`Redirecting user ${req.userId} to ${platform} OAuth: ${authUrl}`);
-      res.redirect(authUrl);
+      // Only redirect to OAuth if we have a valid authUrl (not for Twitter which uses mock)
+      if (authUrl) {
+        console.log(`Redirecting user ${req.userId} to ${platform} OAuth: ${authUrl}`);
+        res.redirect(authUrl);
+      }
     } catch (error) {
       console.error("OAuth initiate error:", error);
       res.status(500).json({ message: "Failed to initiate OAuth" });
@@ -508,10 +511,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         const campaign = await storage.createCampaign(campaignData);
         
-        // Generate AI content for the campaign asynchronously
-        generateAIContent(campaign).catch(error => {
-          console.error("Failed to generate AI content for campaign:", campaign.id, error);
-        });
+        // Check if this is an instant posting campaign
+        if (campaign.postInstantly || campaign.postingTime === "instant") {
+          console.log(`Campaign ${campaign.id} is set for instant posting`);
+          
+          // Import and use the instant posting function
+          const { generateAndPostInstantly } = await import('./services/ai-generator.js');
+          
+          // Generate and post instantly
+          generateAndPostInstantly(campaign).catch(error => {
+            console.error("Failed to generate and post instantly for campaign:", campaign.id, error);
+          });
+        } else {
+          // Generate AI content for the campaign asynchronously (scheduled posting)
+          generateAIContent(campaign).catch(error => {
+            console.error("Failed to generate AI content for campaign:", campaign.id, error);
+          });
+        }
         
         res.json({ campaign });
       } catch (error) {

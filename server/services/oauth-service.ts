@@ -149,8 +149,8 @@ async function exchangeFacebookCode(code: string, redirectUri: string): Promise<
 }
 
 async function exchangeTwitterCode(code: string, redirectUri: string): Promise<TokenResponse> {
-  const clientId = process.env.TWITTER_CLIENT_ID || 'your-twitter-client-id';
-  const clientSecret = process.env.TWITTER_CLIENT_SECRET || 'your-twitter-client-secret';
+  const clientId = process.env.TWITTER_CLIENT_ID || 'dzY1dU9NcW9MWEVFa09FUmxtcGk6MTpjaQ';
+  const clientSecret = process.env.TWITTER_CLIENT_SECRET || 't0ZhzEjOeXVV8s7Z60alx0_6WsmIUUc0yzszNkm2RCQ0Wu4Flx';
 
   const tokenResponse = await fetch('https://api.twitter.com/2/oauth2/token', {
     method: 'POST',
@@ -242,8 +242,8 @@ async function refreshLinkedInToken(refreshToken: string): Promise<TokenResponse
 }
 
 async function refreshTwitterToken(refreshToken: string): Promise<TokenResponse> {
-  const clientId = process.env.TWITTER_CLIENT_ID || 'your-twitter-client-id';
-  const clientSecret = process.env.TWITTER_CLIENT_SECRET || 'your-twitter-client-secret';
+  const clientId = process.env.TWITTER_CLIENT_ID || 'dzY1dU9NcW9MWEVFa09FUmxtcGk6MTpjaQ';
+  const clientSecret = process.env.TWITTER_CLIENT_SECRET || 't0ZhzEjOeXVV8s7Z60alx0_6WsmIUUc0yzszNkm2RCQ0Wu4Flx';
 
   const response = await fetch('https://api.twitter.com/2/oauth2/token', {
     method: 'POST',

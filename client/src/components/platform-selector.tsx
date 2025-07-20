@@ -12,6 +12,7 @@ import {
 interface PlatformSelectorProps {
   selectedPlatforms: string[];
   onPlatformsChange: (platforms: string[]) => void;
+  connectedAccounts?: any[];
 }
 
 const PLATFORMS = [
@@ -21,7 +22,6 @@ const PLATFORMS = [
     description: "Stories, posts, and Reels optimized for engagement",
     icon: Instagram,
     color: "from-purple-400 via-pink-500 to-red-500",
-    connected: true,
   },
   {
     id: "linkedin",
@@ -29,7 +29,6 @@ const PLATFORMS = [
     description: "Professional content that builds your network",
     icon: Linkedin,
     color: "from-blue-600 to-blue-700",
-    connected: true,
   },
   {
     id: "twitter",
@@ -37,7 +36,6 @@ const PLATFORMS = [
     description: "Threads and tweets that spark conversations", 
     icon: Twitter,
     color: "from-slate-700 to-black",
-    connected: false,
   },
   {
     id: "facebook",
@@ -45,11 +43,10 @@ const PLATFORMS = [
     description: "Reach your community with targeted posts",
     icon: Facebook, 
     color: "from-blue-500 to-blue-600",
-    connected: false,
   },
 ];
 
-export default function PlatformSelector({ selectedPlatforms, onPlatformsChange }: PlatformSelectorProps) {
+export default function PlatformSelector({ selectedPlatforms, onPlatformsChange, connectedAccounts = [] }: PlatformSelectorProps) {
   const togglePlatform = (platformId: string) => {
     if (selectedPlatforms.includes(platformId)) {
       onPlatformsChange(selectedPlatforms.filter(p => p !== platformId));
@@ -69,6 +66,7 @@ export default function PlatformSelector({ selectedPlatforms, onPlatformsChange 
         {PLATFORMS.map((platform) => {
           const Icon = platform.icon;
           const isSelected = selectedPlatforms.includes(platform.id);
+          const isConnected = connectedAccounts.some(account => account.platform === platform.id && account.isActive);
           
           return (
             <Card 
@@ -78,7 +76,7 @@ export default function PlatformSelector({ selectedPlatforms, onPlatformsChange 
                   ? "ring-2 ring-electric-blue bg-blue-50" 
                   : "hover:border-electric-blue"
               }`}
-              onClick={() => platform.connected && togglePlatform(platform.id)}
+              onClick={() => isConnected && togglePlatform(platform.id)}
             >
               <CardContent className="p-6">
                 <div className="flex items-start justify-between">
@@ -90,7 +88,7 @@ export default function PlatformSelector({ selectedPlatforms, onPlatformsChange 
                       <h4 className="text-lg font-bold text-slate-900 mb-1">{platform.name}</h4>
                       <p className="text-sm text-slate-600 mb-3">{platform.description}</p>
                       
-                      {platform.connected ? (
+                      {isConnected ? (
                         <Badge className="bg-emerald-100 text-emerald-700">
                           <Check className="w-3 h-3 mr-1" />
                           Connected
@@ -103,7 +101,7 @@ export default function PlatformSelector({ selectedPlatforms, onPlatformsChange 
                     </div>
                   </div>
                   
-                  {platform.connected ? (
+                  {isConnected ? (
                     <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
                       isSelected 
                         ? "bg-electric-blue border-electric-blue" 

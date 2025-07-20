@@ -1,10 +1,24 @@
+import 'dotenv/config';
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
+import cors from "cors";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { initializeScheduler } from "./services/scheduler";
 
 const app = express();
+
+// CORS configuration for production
+const corsOptions = {
+  origin: process.env.NODE_ENV === 'production' 
+    ? [process.env.FRONTEND_URL || 'https://your-domain.com']
+    : ['http://localhost:5173', 'http://localhost:3000'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+};
+
+app.use(cors(corsOptions));
 
 // Session configuration
 app.use(session({
@@ -15,6 +29,7 @@ app.use(session({
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
   },
 }));
 
@@ -76,13 +91,9 @@ app.use((req, res, next) => {
   }
 
   // ALWAYS serve the app on the port specified in the environment variable PORT
-  // Other ports are firewalled. Default to 5000 if not specified.
-  const port = parseInt(process.env.PORT || '5000', 10);
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    log(`SparkWave server running on port ${port}`);
+  // Other ports are firewalled. Default to 3002 if not specified.
+  const port = parseInt(process.env.PORT || '3002', 10);
+  server.listen(port, () => {
+    log(`serving on port ${port}`);
   });
 })();

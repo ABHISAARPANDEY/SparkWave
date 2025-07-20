@@ -123,7 +123,7 @@ class SocialAuthService {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
-          "Authorization": `Basic ${Buffer.from(`${process.env.TWITTER_CLIENT_ID}:${process.env.TWITTER_CLIENT_SECRET}`).toString("base64")}`,
+          "Authorization": `Basic ${Buffer.from(`${process.env.TWITTER_CLIENT_ID || 'dzY1dU9NcW9MWEVFa09FUmxtcGk6MTpjaQ'}:${process.env.TWITTER_CLIENT_SECRET || 't0ZhzEjOeXVV8s7Z60alx0_6WsmIUUc0yzszNkm2RCQ0Wu4Flx'}`).toString("base64")}`,
         },
         body: new URLSearchParams({
           grant_type: "authorization_code",
@@ -254,7 +254,7 @@ class SocialAuthService {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
-          "Authorization": `Basic ${Buffer.from(`${process.env.TWITTER_CLIENT_ID}:${process.env.TWITTER_CLIENT_SECRET}`).toString("base64")}`,
+          "Authorization": `Basic ${Buffer.from(`${process.env.TWITTER_CLIENT_ID || 'dzY1dU9NcW9MWEVFa09FUmxtcGk6MTpjaQ'}:${process.env.TWITTER_CLIENT_SECRET || 't0ZhzEjOeXVV8s7Z60alx0_6WsmIUUc0yzszNkm2RCQ0Wu4Flx'}`).toString("base64")}`,
         },
         body: new URLSearchParams({
           grant_type: "refresh_token",

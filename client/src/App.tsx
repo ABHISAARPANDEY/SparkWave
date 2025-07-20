@@ -20,6 +20,7 @@ function Router() {
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/campaigns" component={Campaigns} />
       <Route path="/campaigns/new" component={CreateCampaign} />
+      <Route path="/create-campaign" component={CreateCampaign} />
       <Route path="/analytics" component={Analytics} />
       <Route component={NotFound} />
     </Switch>

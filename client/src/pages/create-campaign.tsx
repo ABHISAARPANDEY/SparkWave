@@ -141,12 +141,27 @@ export default function CreateCampaign() {
     },
   });
 
+  // Keep form's platforms field in sync with selectedPlatforms
+  React.useEffect(() => {
+    form.setValue('platforms', selectedPlatforms);
+  }, [selectedPlatforms, form]);
+
   const createCampaignMutation = useMutation({
     mutationFn: async (data: CampaignFormData) => {
-      const response = await apiRequest("POST", "/api/campaigns", data);
-      return response.json();
+      console.log('📡 Making API request to /api/campaigns with data:', data);
+      try {
+        const response = await apiRequest("POST", "/api/campaigns", data);
+        console.log('✅ API response received:', response);
+        const result = await response.json();
+        console.log('📄 Response data:', result);
+        return result;
+      } catch (error) {
+        console.error('❌ API request failed:', error);
+        throw error;
+      }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('🎉 Campaign creation successful:', data);
       queryClient.invalidateQueries({ queryKey: ["/api/campaigns"] });
       toast({
         title: "Campaign created!",
@@ -154,7 +169,8 @@ export default function CreateCampaign() {
       });
       setLocation("/campaigns");
     },
-    onError: () => {
+    onError: (error) => {
+      console.error('💥 Campaign creation failed:', error);
       toast({
         title: "Failed to create campaign",
         description: "Please try again or contact support if the issue persists.",
@@ -164,10 +180,31 @@ export default function CreateCampaign() {
   });
 
   const onSubmit = (data: CampaignFormData) => {
-    createCampaignMutation.mutate({
+    console.log('🚀 Form submitted with data:', data);
+    console.log('📱 Selected platforms:', selectedPlatforms);
+    
+    // Update the form's platforms field with selected platforms
+    form.setValue('platforms', selectedPlatforms);
+    
+    // Ensure platforms are set in the form data
+    const campaignData = {
       ...data,
       platforms: selectedPlatforms,
-    });
+    };
+    
+    console.log('📤 Sending campaign data:', campaignData);
+    
+    // Validate that we have platforms selected
+    if (selectedPlatforms.length === 0) {
+      toast({
+        title: "No platforms selected",
+        description: "Please select at least one platform to post to.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    createCampaignMutation.mutate(campaignData);
   };
 
   const nextStep = () => {
@@ -193,14 +230,14 @@ export default function CreateCampaign() {
         return;
       }
     } else if (step === 2) {
-      // Validate step 2 fields
+      // Auto-select connected platforms if none are selected
       if (selectedPlatforms.length === 0) {
+        const connectedPlatformIds = availablePlatforms.map(account => account.platform);
+        setSelectedPlatforms(connectedPlatformIds);
         toast({
-          title: "Select at least one platform",
-          description: "Choose where you want to publish your content.",
-          variant: "destructive",
+          title: "Platforms auto-selected",
+          description: `Selected all ${connectedPlatformIds.length} connected platform${connectedPlatformIds.length > 1 ? 's' : ''} for your campaign.`,
         });
-        return;
       }
     }
     setStep(step + 1);
@@ -665,6 +702,7 @@ export default function CreateCampaign() {
                 <PlatformSelector
                   selectedPlatforms={selectedPlatforms}
                   onPlatformsChange={setSelectedPlatforms}
+                  connectedAccounts={availablePlatforms}
                 />
               )}
 
@@ -778,6 +816,11 @@ export default function CreateCampaign() {
                     type="submit"
                     disabled={createCampaignMutation.isPending}
                     className="sparkwave-button-primary"
+                    onClick={() => {
+                      console.log('🔘 Create Campaign button clicked!');
+                      console.log('📋 Form values:', form.getValues());
+                      console.log('📱 Selected platforms:', selectedPlatforms);
+                    }}
                   >
                     {createCampaignMutation.isPending ? "Creating..." : "Create Campaign"}
                     <Sparkles className="w-4 h-4 ml-2" />

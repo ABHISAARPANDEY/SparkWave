@@ -13,15 +13,15 @@ export interface TwitterUserInfo {
   username: string;
 }
 
-export async function exchangeTwitterCodeForToken(code: string, redirectUri: string): Promise<{
+export async function exchangeTwitterCodeForToken(code: string, redirectUri: string, codeVerifier: string): Promise<{
   accessToken: string;
   refreshToken?: string;
   expiresAt: Date;
   userId: string;
   username: string;
 }> {
-  const clientId = process.env.TWITTER_CLIENT_ID;
-  const clientSecret = process.env.TWITTER_CLIENT_SECRET;
+  const clientId = process.env.TWITTER_CLIENT_ID || 'dzY1dU9NcW9MWEVFa09FUmxtcGk6MTpjaQ';
+  const clientSecret = process.env.TWITTER_CLIENT_SECRET || 't0ZhzEjOeXVV8s7Z60alx0_6WsmIUUc0yzszNkm2RCQ0Wu4Flx';
   
   if (!clientId || !clientSecret) {
     throw new Error('Twitter OAuth credentials not configured');
@@ -40,6 +40,7 @@ export async function exchangeTwitterCodeForToken(code: string, redirectUri: str
       grant_type: 'authorization_code',
       code,
       redirect_uri: redirectUri,
+      code_verifier: codeVerifier,
     }),
   });
 
