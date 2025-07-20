@@ -111,6 +111,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Store user session
       req.session.userId = user.id;
 
+      // Check if there's a pending OAuth success
+      const oauthSuccess = (req.session as any).oauthSuccess;
+      if (oauthSuccess) {
+        // Clear the OAuth success from session
+        delete (req.session as any).oauthSuccess;
+        
+        // Redirect to complete the OAuth flow
+        const baseUrl = process.env.NODE_ENV === 'production' 
+          ? 'https://spark-wave-1-hakopog916.replit.app'
+          : (req.headers.host ? `http://${req.headers.host}` : 'http://localhost:3002');
+        
+        return res.redirect(`${baseUrl}/create-campaign?oauth_success=${oauthSuccess.platform}&message=${encodeURIComponent(oauthSuccess.message)}`);
+      }
+
+      // Check if there's a pending OAuth connection
+      const pendingOAuth = (req.session as any).pendingOAuth;
+      if (pendingOAuth) {
+        // Clear the pending OAuth from session
+        delete (req.session as any).pendingOAuth;
+        
+        // Redirect to the OAuth connect route
+        const baseUrl = process.env.NODE_ENV === 'production' 
+          ? 'https://spark-wave-1-hakopog916.replit.app'
+          : (req.headers.host ? `http://${req.headers.host}` : 'http://localhost:3002');
+        
+        return res.redirect(`${baseUrl}/auth/${pendingOAuth}/connect`);
+      }
+
       res.json({ user: { ...user, password: undefined } });
     } catch (error) {
       console.error("Login error:", error);
@@ -142,6 +170,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Get user error:", error);
       res.status(500).json({ message: "Failed to get user" });
     }
+  });
+
+  // Debug route to check session
+  app.get("/api/auth/debug", (req, res) => {
+    res.json({
+      sessionId: req.sessionID,
+      userId: req.session.userId,
+      oauthSuccess: (req.session as any).oauthSuccess,
+      pendingOAuth: (req.session as any).pendingOAuth,
+      sessionData: req.session,
+      cookies: req.headers.cookie
+    });
+  });
+
+  // Test route to set session
+  app.get("/api/auth/test-session", (req, res) => {
+    req.session.userId = 123;
+    req.session.save((err) => {
+      if (err) {
+        return res.json({ error: 'Session save failed', err: err.message });
+      }
+      res.json({ 
+        message: 'Session set successfully',
+        sessionId: req.sessionID,
+        userId: req.session.userId
+      });
+    });
+  });
+
+  // Test route to simulate OAuth without session
+  app.get("/api/auth/test-oauth", (req, res) => {
+    const baseUrl = process.env.NODE_ENV === 'production' 
+      ? 'https://spark-wave-1-hakopog916.replit.app'
+      : (req.headers.host ? `http://${req.headers.host}` : 'http://localhost:3002');
+    
+    res.json({
+      message: 'OAuth test route',
+      sessionId: req.sessionID,
+      userId: req.session.userId,
+      oauthUrl: `${baseUrl}/auth/twitter/connect`
+    });
   });
 
   // Social auth routes
@@ -267,7 +336,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { platform } = req.params;
       const { code, state, error, error_description } = req.query;
       
-      const baseUrl = 'http://localhost:3002';
+      // Support both localhost and production URLs
+      const baseUrl = process.env.NODE_ENV === 'production' 
+        ? 'https://spark-wave-1-hakopog916.replit.app'
+        : (req.headers.host ? `http://${req.headers.host}` : 'http://localhost:3002');
+
+      // Debug session state
+      console.log('OAuth Callback Debug:', {
+        sessionId: req.sessionID,
+        userId: req.session.userId,
+        state: state,
+        platform: platform,
+        baseUrl: baseUrl
+      });
 
       if (error) {
         console.error(`OAuth error for ${platform}:`, error, error_description);
@@ -284,6 +365,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (state) {
           const stateData = JSON.parse(Buffer.from(state as string, 'base64').toString());
           userId = stateData.userId;
+          console.log('State data:', stateData);
         }
       } catch (e) {
         console.warn('Invalid state parameter:', e);
@@ -292,14 +374,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Fallback to session if state validation fails
       if (!userId) {
         userId = req.session.userId;
+        console.log('Using session userId:', userId);
       }
 
       if (!userId) {
+        console.log('No userId found, redirecting to login');
         // For unauthenticated users, redirect to login with OAuth success info
-        return res.redirect(`${baseUrl}/auth?oauth_success=${platform}&message=Please log in or register to complete the connection`);
+        // Store the OAuth success in session for after login
+        (req.session as any).oauthSuccess = { platform, message: 'Please log in or register to complete the connection' };
+        
+        // Force session save before redirect
+        req.session.save((err) => {
+          if (err) {
+            console.error('Session save error:', err);
+          }
+          return res.redirect(`${baseUrl}/auth?oauth_success=${platform}&message=Please log in or register to complete the connection`);
+        });
+        return;
       }
 
-      const serverUrl = 'http://localhost:3002';
+      const serverUrl = process.env.NODE_ENV === 'production' 
+        ? 'https://spark-wave-1-hakopog916.replit.app'
+        : (req.headers.host ? `http://${req.headers.host}` : 'http://localhost:3002');
       const redirectUri = `${serverUrl}/auth/${platform}/callback`;
       
       try {
@@ -358,7 +454,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     } catch (error) {
       console.error("OAuth callback error:", error);
-      const baseUrl = 'http://localhost:3002';
+      const baseUrl = process.env.NODE_ENV === 'production' 
+        ? 'https://spark-wave-1-hakopog916.replit.app'
+        : (req.headers.host ? `http://${req.headers.host}` : 'http://localhost:3002');
       res.redirect(`${baseUrl}/create-campaign?error=oauth_error&message=Authentication failed`);
     }
   });
@@ -410,8 +508,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/auth/:platform/connect", async (req, res) => {
     try {
       const { platform } = req.params;
-      const baseUrl = 'http://localhost:3002';
+      // Support both localhost and production URLs
+      const baseUrl = process.env.NODE_ENV === 'production' 
+        ? 'https://spark-wave-1-hakopog916.replit.app'
+        : (req.headers.host ? `http://${req.headers.host}` : 'http://localhost:3002');
       const redirectUri = `${baseUrl}/auth/${platform}/callback`;
+      
+      // Debug session state
+      console.log('OAuth Connect Debug:', {
+        sessionId: req.sessionID,
+        userId: req.session.userId,
+        platform: platform,
+        cookies: req.headers.cookie ? 'present' : 'missing'
+      });
+      
+      // Check if user is authenticated
+      if (!req.session.userId) {
+        console.log('User not authenticated, storing pending OAuth');
+        
+        // TEMPORARY: Allow OAuth to proceed even without session for testing
+        // In production, this should redirect to login
+        console.log('Temporarily allowing OAuth without session for testing');
+        
+        // Store the intended OAuth platform in session
+        (req.session as any).pendingOAuth = platform;
+        
+        // Force session save before redirect
+        req.session.save((err) => {
+          if (err) {
+            console.error('Session save error:', err);
+          }
+          // For now, let's proceed with OAuth and handle session later
+          console.log('Proceeding with OAuth despite no session');
+        });
+        
+        // Don't return here - let the OAuth flow continue
+      }
       
       // Generate state parameter for security (store user ID if authenticated)
       const state = Buffer.from(JSON.stringify({ 

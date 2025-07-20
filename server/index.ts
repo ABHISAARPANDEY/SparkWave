@@ -11,8 +11,8 @@ const app = express();
 // CORS configuration for production
 const corsOptions = {
   origin: process.env.NODE_ENV === 'production' 
-    ? [process.env.FRONTEND_URL || 'https://your-domain.com']
-    : ['http://localhost:5173', 'http://localhost:3000'],
+    ? ['https://spark-wave-1-hakopog916.replit.app', 'http://localhost:3002', 'http://localhost:5173']
+    : ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:3002'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -23,14 +23,15 @@ app.use(cors(corsOptions));
 // Session configuration
 app.use(session({
   secret: process.env.SESSION_SECRET || 'sparkwave-secret-key-change-in-production',
-  resave: false,
-  saveUninitialized: false,
+  resave: true,
+  saveUninitialized: true,
   cookie: {
-    secure: process.env.NODE_ENV === 'production',
+    secure: false, // Set to false for Replit compatibility
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+    sameSite: 'lax' // Use lax for better compatibility
   },
+  name: 'sparkwave-session' // Custom session name
 }));
 
 app.use(express.json());

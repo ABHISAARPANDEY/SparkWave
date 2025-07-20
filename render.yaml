@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: sparkwave-app
+    name: sparkwave
     env: node
     plan: free
     buildCommand: npm install && npm run build
@@ -9,18 +9,16 @@ services:
       - key: NODE_ENV
         value: production
       - key: PORT
-        value: 3002
-      - key: SUPABASE_URL
-        value: https://jaflxjatobiupbrqcrfm.supabase.co
-      - key: SUPABASE_ANON_KEY
-        value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImphZmx4amF0b2JpdXBicnFjcmZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI5NTQ4NzIsImV4cCI6MjA2ODUzMDg3Mn0.V0fpjk8h6h0GaD3VZAzP0fx-JyHBfZe6ihUuGDk4xCU
-      - key: TWITTER_CLIENT_ID
-        value: dzY1dU9NcW9MWEVFa09FUmxtcGk6MTpjaQ
-      - key: TWITTER_CLIENT_SECRET
-        value: t0ZhzEjOeXVV8s7Z60alx0_6WsmIUUc0yzszNkm2RCQ0Wu4Flx
-      - key: A4F_API_KEY
-        value: ddc-a4f-c4646ced53b34fdfa60084c2a56680ac
-      - key: A4F_MODEL_ID
-        value: provider-6/gpt-4o
+        value: 10000
       - key: SESSION_SECRET
-        value: sparkwave-super-secure-session-secret-2024 
+        generateValue: true
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: TWITTER_CLIENT_ID
+        sync: false
+      - key: TWITTER_CLIENT_SECRET
+        sync: false
+      - key: FRONTEND_URL
+        value: https://sparkwave-zemn.onrender.com 
