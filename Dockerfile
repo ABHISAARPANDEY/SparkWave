@@ -35,8 +35,10 @@ RUN adduser --system --uid 1001 nextjs
 
 # Copy the built application
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/client/dist ./client/dist
 COPY --from=builder /app/package.json ./package.json
+
+# Ensure the dist directory exists and has proper permissions
+RUN mkdir -p dist/public && chown -R nextjs:nodejs dist
 
 # Copy necessary files for runtime
 COPY --from=builder /app/drizzle.config.ts ./drizzle.config.ts
